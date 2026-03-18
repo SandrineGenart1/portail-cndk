@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portail numérique - Collège de Kain</title>
+  <link rel="stylesheet" href="style.css">
+  
+</head>
+<body>
+
+  <div class="layout">
+
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">
+          <img class=brand-logo src="images/logoCNDK.png" alt="">
+        </div>
+        <div class="brand-text">
+          <h1>Portail numérique du CNDK</h1>
+          <p>Collège</p>
+        </div>
+      </div>
+
+      <nav class="menu">
+        <a href="#accueil" class="menu-link active">Accueil</a>
+        <a href="#microsoft365" class="menu-link">Microsoft 365</a>
+        <a href="#ecole" class="menu-link">Outils de l’école</a>
+        <a href="#aide" class="menu-link">Aide</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <p>Connexion avec le compte scolaire</p>
+      </div>
+    </aside>
+
+    <main class="main-content">
+
+      <header class="topbar" id="accueil">
+        <div>
+          <p class="eyebrow">Espace élèves et enseignants</p>
+          <h2>Bienvenue sur le portail des outils numériques du CNDK</h2>
+          <p class="intro">
+            Retrouvez rapidement les principaux services utilisés au collège :
+            Microsoft 365, Smartschool et autres outils pédagogiques.
+          </p>
+        </div>
+
+    <div class="topbar-actions">
+  <button type="button" class="btn btn-primary" id="loginBtn" onclick="login()">Se connecter</button>
+  <button type="button" class="btn btn-light" id="logoutBtn" onclick="logout()" style="display: none;">Se déconnecter</button>
+  <p id="user" class="user-info"></p>
+</div>
+      </header>
+
+      <section class="hero">
+  <div class="hero-card">
+    <div class="hero-text">
+      <p class="hero-kicker">Accès rapide</p>
+      <h3>Tous vos outils au même endroit</h3>
+      <p>
+        Ouvrez votre messagerie, vos documents, vos équipes Teams
+        et vos outils scolaires depuis une seule page.
+      </p>
+    </div>
+  </div>
+</section>
+
+      <section class="section" id="ecole">
+        <div class="section-header">
+          <h3>Outils de l’école</h3>
+          <p>Accès directs aux services internes et pédagogiques</p>
+        </div>
+
+        <div class="cards-grid">
+
+          <a class="tool-card school-card" href="https://cndk.smartschool.be/" target="_blank" rel="noopener">
+             <div class="tool-icon school">
+              <img src="images/logosmartschool_mini.png" alt="Smartschool">
+            </div>
+            <div class="tool-content">
+              <h4>Smartschool</h4>
+              <p>Journal de classe, devoirs, communications et documents</p>
+            </div>
+          </a>
+
+          <a class="tool-card school-card" href="https://cndk.it-school.be/login" target="_blank" rel="noopener">
+            
+              <div class="tool-icon itschool">
+                <img src="images/itschoollogo.png" alt="IT School">
+              </div>
+            
+            <div class="tool-content">
+              <h4>IT School</h4>
+              <p>Règlemnent des factures, réservation de repas</p>
+            </div>
+          </a>
+
+          <a class="tool-card school-card" href="#" target="_blank" rel="noopener">
+            <div class="tool-icon gray">C</div>
+            <div class="tool-content">
+              <h4>Cours en ligne</h4>
+              <p>Ajoutez ici Moodle, plateforme interne ou autre service</p>
+            </div>
+          </a>
+
+          <a class="tool-card school-card" href="#" target="_blank" rel="noopener">
+            <div class="tool-icon gray">A</div>
+            <div class="tool-content">
+              <h4>Aide informatique</h4>
+              <p>Ajoutez ici une page d’assistance ou un formulaire de contact</p>
+            </div>
+          </a>
+
+        </div>
+      </section>
+
+      <section class="section" id="microsoft365">
+        <div class="section-header">
+          <h3>Microsoft 365</h3>
+          <p>Applications et services liés au compte scolaire</p>
+        </div>
+
+        <div class="cards-grid">
+
+          <a class="tool-card" href="https://outlook.office.com" target="_blank" rel="noopener">
+            <div class="tool-icon blue">O</div>
+            <div class="tool-content">
+              <h4>Outlook</h4>
+              <p>Messagerie scolaire et calendrier</p>
+            </div>
+          </a>
+
+          <a class="tool-card" href="https://teams.microsoft.com" target="_blank" rel="noopener">
+            <div class="tool-icon purple">T</div>
+            <div class="tool-content">
+              <h4>Teams</h4>
+              <p>Classes, réunions et échanges</p>
+            </div>
+          </a>
+
+          <a class="tool-card" href="https://word.cloud.microsoft" target="_blank" rel="noopener">
+            <div class="tool-icon darkblue">W</div>
+            <div class="tool-content">
+              <h4>Word</h4>
+              <p>Traitement de texte en ligne</p>
+            </div>
+          </a>
+
+          <a class="tool-card" href="https://excel.cloud.microsoft" target="_blank" rel="noopener">
+            <div class="tool-icon green">X</div>
+            <div class="tool-content">
+              <h4>Excel</h4>
+              <p>Tableurs et calculs</p>
+            </div>
+          </a>
+
+          <a class="tool-card" href="https://powerpoint.cloud.microsoft" target="_blank" rel="noopener">
+            <div class="tool-icon orange">P</div>
+            <div class="tool-content">
+              <h4>PowerPoint</h4>
+              <p>Présentations et exposés</p>
+            </div>
+          </a>
+
+          <a class="tool-card" href="https://www.office.com" target="_blank" rel="noopener">
+            <div class="tool-icon red">M</div>
+            <div class="tool-content">
+              <h4>Microsoft 365</h4>
+              <p>Accueil complet des applications</p>
+            </div>
+          </a>
+
+          <a class="tool-card" href="https://onedrive.live.com" target="_blank" rel="noopener">
+            <div class="tool-icon cyan">D</div>
+            <div class="tool-content">
+              <h4>OneDrive</h4>
+              <p>Stockage et documents personnels</p>
+            </div>
+          </a>
+
+          <a class="tool-card" href="https://www.onenote.com" target="_blank" rel="noopener">
+            <div class="tool-icon violet">N</div>
+            <div class="tool-content">
+              <h4>OneNote</h4>
+              <p>Notes et organisation</p>
+            </div>
+          </a>
+
+        </div>
+      </section>
+
+      
+
+      <section class="section" id="aide">
+        <div class="section-header">
+          <h3>Aide</h3>
+          <p>Quelques repères pour les utilisateurs</p>
+        </div>
+
+        <div class="info-panel">
+          <div class="info-box">
+            <h4>Connexion</h4>
+            <p>
+              Utilisez votre compte scolaire pour accéder aux outils Microsoft 365.
+            </p>
+          </div>
+          <div class="info-box">
+            <h4>Problème d’accès</h4>
+            <p>
+              En cas de souci de mot de passe ou de connexion, contactez le support informatique de l’école.
+            </p>
+          </div>
+          <div class="info-box">
+            <h4>Personnalisation</h4>
+            <p>
+              Cette page peut ensuite être adaptée aux couleurs et au style graphique du collège.
+            </p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+<script src="js/msal-browser.min.js"></script>
+<script src="js/msal-browser.min.js"></script>
+
+<script>
+
+// ===============================
+// CONFIGURATION MSAL
+// ===============================
+
+// Configuration de l'application Azure (Entra ID)
+const msalConfig = {
+  auth: {
+    // Identifiant de mon application (récupéré dans Azure)
+    clientId: "69d76af5-b3e4-4179-9f9b-1e1ff3ce7285",
+
+    // URL du tenant de l'école (permet de savoir sur quel domaine s'authentifier)
+    authority: "https://login.microsoftonline.com/1cdfb3d4-d7ed-45dd-8dd3-ba2863060f4e",
+
+    // URL de redirection après connexion
+    redirectUri: "https://cndk.analept.be/portail/"
+  },
+
+  // Gestion du cache côté navigateur
+  cache: {
+    // On stocke les infos de connexion dans le localStorage
+    cacheLocation: "localStorage",
+
+    // Pas besoin de cookies dans notre cas
+    storeAuthStateInCookie: false
+  }
+};
+
+// ===============================
+// PARAMÈTRES DE CONNEXION
+// ===============================
+
+// On demande ici les informations de base sur l'utilisateur
+const loginRequest = {
+  scopes: ["openid", "profile", "User.Read"]
+};
+
+// ===============================
+// INITIALISATION MSAL
+// ===============================
+
+// Création de l'objet principal MSAL
+const msalInstance = new msal.PublicClientApplication(msalConfig);
+
+// ===============================
+// FONCTION DE CONNEXION
+// ===============================
+
+// Cette fonction est appelée quand on clique sur "Se connecter"
+function login() {
+  // Redirection vers la page Microsoft
+  msalInstance.loginRedirect(loginRequest);
+}
+
+// ===============================
+// FONCTION DE DÉCONNEXION
+// ===============================
+
+// Cette fonction permet de se déconnecter
+function logout() {
+  msalInstance.logoutRedirect({
+    // Redirection vers le portail après déconnexion
+    postLogoutRedirectUri: "https://cndk.analept.be/portail/"
+  });
+}
+
+// ===============================
+// MISE À JOUR DE L'INTERFACE
+// ===============================
+
+// Cette fonction adapte l'affichage selon si l'utilisateur est connecté ou non
+function updateUI(account) {
+
+  const loginBtn = document.getElementById("loginBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const userEl = document.getElementById("user");
+
+  // Si un utilisateur est connecté
+  if (account) {
+
+    // On affiche le nom si disponible, sinon l'email
+    const displayName = account.name ? account.name : account.username;
+
+    userEl.textContent = "Connecté : " + displayName;
+
+    // On cache le bouton "Se connecter"
+    loginBtn.style.display = "none";
+
+    // On affiche le bouton "Se déconnecter"
+    logoutBtn.style.display = "inline-block";
+
+  } else {
+
+    // Aucun utilisateur connecté → on vide l'affichage
+    userEl.textContent = "";
+
+    // On affiche "Se connecter"
+    loginBtn.style.display = "inline-block";
+
+    // On cache "Se déconnecter"
+    logoutBtn.style.display = "none";
+  }
+}
+
+// ===============================
+// INITIALISATION AU CHARGEMENT
+// ===============================
+
+// Cette fonction est appelée automatiquement au chargement de la page
+async function initializeMsal() {
+
+  try {
+
+    // Gestion du retour après authentification Microsoft
+    const response = await msalInstance.handleRedirectPromise();
+
+    // Si on revient d'une connexion
+    if (response && response.account) {
+
+      // On définit l'utilisateur actif
+      msalInstance.setActiveAccount(response.account);
+
+      // Mise à jour de l'interface
+      updateUI(response.account);
+
+      return;
+    }
+
+    // Sinon, on vérifie s'il y a déjà un utilisateur connecté
+    const accounts = msalInstance.getAllAccounts();
+
+    if (accounts.length > 0) {
+
+      // On prend le premier compte trouvé
+      msalInstance.setActiveAccount(accounts[0]);
+
+      updateUI(accounts[0]);
+
+    } else {
+
+      // Aucun utilisateur connecté
+      updateUI(null);
+    }
+
+  } catch (error) {
+
+    // En cas d'erreur, on l'affiche dans la console
+    console.error("Erreur MSAL :", error);
+  }
+}
+
+// Lancement automatique au chargement de la page
+initializeMsal();
+
+</script>
+</body>
+</html>

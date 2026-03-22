@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transports — Portail CNDK</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Raleway:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    /* ── Login overlay ── */
+    #login-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--dark);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      gap: 16px;
+    }
+    #login-overlay h2 { font-family: 'Raleway', sans-serif; color: var(--white); font-size: 24px; }
+    #login-overlay p  { color: rgba(255,255,255,.65); font-size: 15px; }
+
+    /* ── Tableau départs ── */
+    .departures-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      margin-bottom: 40px;
+    }
+    .departures-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .station-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--navy);
+      color: var(--white);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: var(--bg);
+      padding: 10px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--bg); }
+    td { padding: 12px 16px; font-size: 14px; vertical-align: middle; }
+    .time-cell { font-family: 'Raleway', sans-serif; font-size: 18px; font-weight: 700; color: var(--dark); white-space: nowrap; }
+    .train-number { display: inline-block; background: var(--navy); color: var(--white); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
+    .platform-badge { display: inline-block; background: var(--gold); color: var(--white); font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+    .delay-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 20px; }
+    .delay-ok   { background: #e8f7ef; color: #2d7a4f; }
+    .delay-warn { background: #fff3e0; color: #e65100; }
+    .delay-late { background: #fdecea; color: #c0392b; }
+    .cancelled  { color: #c0392b; font-weight: 700; font-size: 12px; }
+
+    /* ── Perturbations ── */
+    .disturbances-wrap { display: grid; gap: 10px; margin-bottom: 40px; }
+    .disturbance-card {
+      background: #fff5f5;
+      border: 1px solid #f5c6c6;
+      border-left: 4px solid #c0392b;
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .disturbance-title { font-weight: 700; font-size: 14px; color: #c0392b; margin-bottom: 4px; }
+    .disturbance-desc  { font-size: 13px; color: #7a3535; line-height: 1.55; }
+    .no-disturbance {
+      background: #f0faf4;
+      border: 1px solid #b7e4c7;
+      border-left: 4px solid #2d7a4f;
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: #2d7a4f;
+      font-weight: 600;
+    }
+
+    /* ── TEC ── */
+    .tec-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+    .tec-stops { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .stop-pill {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--navy);
+      cursor: pointer;
+    }
+    .stop-pill:hover { background: var(--border); }
+    .btn-tec {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 22px;
+      background: #00843d;
+      color: var(--white);
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform .18s, box-shadow .18s;
+      box-shadow: 0 4px 14px rgba(0,132,61,.3);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .btn-tec:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,132,61,.4); }
+
+    /* ── Carte Leaflet ── */
+    .map-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      margin-bottom: 40px;
+    }
+    .map-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    #bus-map { height: 640px; width: 100%; }
+    .map-stops-list {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* ── Légende lignes ── */
+    .lignes-legend {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+    }
+    .lignes-legend-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .lignes-legend-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 8px;
+    }
+    .ligne-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .ligne-badge {
+      background: var(--navy);
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .ligne-nom {
+      font-size: 13px;
+      color: var(--dark);
+    }
+
+    /* ── Utilitaires ── */
+    .loading { padding: 32px; text-align: center; color: var(--muted); font-size: 14px; }
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2px solid var(--border);
+      border-top-color: var(--navy);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-msg { padding: 20px; text-align: center; color: #c0392b; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<!-- ── Login overlay ── -->
+<div id="login-overlay">
+  <h2>🚆 Transports — CNDK</h2>
+  <p>Connectez-vous avec votre compte scolaire pour accéder aux horaires.</p>
+  <button class="btn btn-primary" id="loginBtn">🔑 Se connecter</button>
+</div>
+
+<!-- ── Page ── -->
+<div id="page-content" style="display:none">
+  <div class="layout">
+
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">
+          <img src="images/Logo_fd_blanc.png" alt="Logo CNDK">
+        </div>
+      </div>
+      <nav class="menu">
+        <div class="menu-label">Navigation</div>
+        <a href="index.html" class="menu-link"><span class="icon">🏠</span> Accueil</a>
+        <a href="index.html#ecole" class="menu-link"><span class="icon">🏫</span> Outils de l'école</a>
+        <a href="index.html#microsoft365" class="menu-link"><span class="icon">☁️</span> Microsoft 365</a>
+        <a href="#" class="menu-link active"><span class="icon">🚆</span> Transports</a>
+        <a href="index.html#aide" class="menu-link"><span class="icon">❓</span> Aide</a>
+      </nav>
+      <div class="sidebar-footer">
+        <p>Connectez-vous avec votre <span>compte scolaire</span> pour accéder à tous les services.</p>
+      </div>
+    </aside>
+
+    <main class="main-content">
+
+      <header class="topbar">
+        <div class="topbar-left">
+          <p class="eyebrow">Horaires en temps réel</p>
+          <h2>Transports <span>depuis Tournai</span></h2>
+          <p class="intro">Prochains départs depuis la gare de Tournai et horaires des bus TEC proches du collège.</p>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-light" id="logoutBtn">Se déconnecter</button>
+          <p class="user-info" id="user-badge"></p>
+        </div>
+      </header>
+
+      <!-- Perturbations SNCB -->
+      <div class="section-header">
+        <h3>⚠️ Perturbations SNCB</h3>
+        <div class="section-header-line"></div>
+        <p id="disturbances-time"></p>
+      </div>
+      <div id="disturbances-wrap" class="disturbances-wrap">
+        <div class="loading"><span class="spinner"></span>Chargement des perturbations…</div>
+      </div>
+
+      <!-- Prochains départs -->
+      <div class="section-header">
+        <h3>🕐 Prochains départs depuis Tournai</h3>
+        <div class="section-header-line"></div>
+        <p id="last-updated"></p>
+      </div>
+      <div class="departures-card">
+        <div class="departures-toolbar">
+          <span class="station-badge">🚉 Gare de Tournai</span>
+          <button class="btn btn-light" onclick="loadDepartures()" style="padding:7px 14px;font-size:13px">↻ Actualiser</button>
+        </div>
+        <div id="departures-wrap">
+          <div class="loading"><span class="spinner"></span>Chargement des départs…</div>
+        </div>
+      </div>
+
+      <!-- Bus TEC -->
+      <div class="section-header">
+        <h3>🚌 Bus TEC</h3>
+        <div class="section-header-line"></div>
+      </div>
+      <div class="tec-card">
+        <div>
+          <h4 style="font-family:'Raleway',sans-serif;font-size:17px;font-weight:700;color:var(--dark);margin-bottom:6px">Arrêts proches du Collège</h4>
+          <p class="intro">Consultez les horaires en temps réel des bus TEC depuis les arrêts proches de l'école et de la gare de Tournai.</p>
+          <div class="tec-stops">
+            <span class="stop-pill">Kain Centre</span>
+            <span class="stop-pill">Kain Église</span>
+            <span class="stop-pill">Gare de Tournai</span>
+            <span class="stop-pill">Tournai Grand-Place</span>
+          </div>
+        </div>
+        <a href="https://www.infotec.be/fr-be/medeplacer/horaires.aspx" target="_blank" rel="noopener" class="btn-tec">
+          🌐 Horaires TEC en ligne
+        </a>
+      </div>
+
+      <!-- Carte arrêts de bus -->
+      <div class="section-header">
+        <h3>🗺️ Arrêts de bus proches du Collège</h3>
+        <div class="section-header-line"></div>
+        <p id="stops-count"></p>
+      </div>
+      <div class="map-card">
+        <div class="map-toolbar">
+          <span class="station-badge">📍 Rayon 1000 m autour du Collège</span>
+          <span style="font-size:12px;color:var(--muted)">Source : OpenStreetMap</span>
+        </div>
+        <div id="bus-map"></div>
+        <!-- Liste des arrêts (pills cliquables) -->
+        <div id="stops-list" class="map-stops-list">
+          <span style="font-size:13px;color:var(--muted)"><span class="spinner"></span>Chargement des arrêts…</span>
+        </div>
+        <!-- Légende des lignes -->
+        <div class="lignes-legend">
+          <p class="lignes-legend-title">Lignes desservant la zone</p>
+          <div id="lignes-legend" class="lignes-legend-grid">
+            <span style="font-size:13px;color:var(--muted)"><span class="spinner"></span>Chargement…</span>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="js/msal-browser.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  // ── MSAL ──────────────────────────────────────────────────────────────────
+  const msalConfig = {
+    auth: {
+      clientId:    "69d76af5-b3e4-4179-9f9b-1e1ff3ce7285",
+      authority:   "https://login.microsoftonline.com/1cdfb3d4-d7ed-45dd-8dd3-ba2863060f4e",
+      redirectUri: "https://cndk.analept.be/portail/transports.html"
+    },
+    cache: { cacheLocation: "localStorage", storeAuthStateInCookie: false }
+  };
+
+  const loginRequest = { scopes: ["openid", "profile", "User.Read"] };
+  const msalInstance = new msal.PublicClientApplication(msalConfig);
+
+  document.getElementById("loginBtn").onclick  = () => msalInstance.loginRedirect(loginRequest);
+  document.getElementById("logoutBtn").onclick = () => msalInstance.logoutRedirect({
+    postLogoutRedirectUri: "https://cndk.analept.be/portail/transports.html"
+  });
+
+  async function verifierConnexion() {
+    const response = await msalInstance.handleRedirectPromise();
+    let account = null;
+
+    if (response?.account) {
+      msalInstance.setActiveAccount(response.account);
+      account = response.account;
+    } else {
+      const accounts = msalInstance.getAllAccounts();
+      if (accounts.length > 0) {
+        msalInstance.setActiveAccount(accounts[0]);
+        account = accounts[0];
+      }
+    }
+
+    if (account) {
+      document.getElementById("login-overlay").style.display = "none";
+      document.getElementById("page-content").style.display  = "block";
+      document.getElementById("user-badge").textContent = "✓ " + (account.name || account.username);
+      loadDepartures();
+      loadDisturbances();
+      initMap();
+      setInterval(loadDepartures,   60000);
+      setInterval(loadDisturbances, 120000);
+    }
+  }
+
+  // ── Départs iRail ─────────────────────────────────────────────────────────
+  async function loadDepartures() {
+    const wrap = document.getElementById("departures-wrap");
+    try {
+      const res  = await fetch("https://api.irail.be/liveboard/?station=Tournai&format=json&lang=fr&alerts=true");
+      const data = await res.json();
+      const deps = data.departures?.departure || [];
+
+      if (!deps.length) {
+        wrap.innerHTML = '<div class="loading">Aucun départ trouvé.</div>';
+        return;
+      }
+
+      document.getElementById("last-updated").textContent =
+        "Mis à jour à " + new Date().toLocaleTimeString("fr-BE", {hour:"2-digit", minute:"2-digit"});
+
+      let html = `<table><thead><tr>
+        <th>Heure</th><th>Destination</th><th>Train</th><th>Voie</th><th>Statut</th>
+      </tr></thead><tbody>`;
+
+      deps.slice(0, 12).forEach(d => {
+        const heure  = new Date(d.time * 1000).toLocaleTimeString("fr-BE", {hour:"2-digit", minute:"2-digit"});
+        const retard = parseInt(d.delay) || 0;
+        const annule = d.canceled == 1;
+        const train  = d.vehicle?.split(".").pop() || "—";
+
+        let statusHtml = "";
+        if (annule) {
+          statusHtml = '<span class="cancelled">Supprimé</span>';
+        } else if (retard === 0) {
+          statusHtml = '<span class="delay-badge delay-ok">À l\'heure</span>';
+        } else if (retard <= 300) {
+          statusHtml = `<span class="delay-badge delay-warn">+${Math.round(retard/60)} min</span>`;
+        } else {
+          statusHtml = `<span class="delay-badge delay-late">+${Math.round(retard/60)} min</span>`;
+        }
+
+        html += `<tr>
+          <td class="time-cell">${heure}</td>
+          <td><strong>${d.station}</strong></td>
+          <td><span class="train-number">${train}</span></td>
+          <td>${d.platform && d.platform !== "?" ? `<span class="platform-badge">${d.platform}</span>` : "—"}</td>
+          <td>${statusHtml}</td>
+        </tr>`;
+      });
+
+      html += "</tbody></table>";
+      wrap.innerHTML = html;
+
+    } catch (e) {
+      wrap.innerHTML = '<div class="error-msg">⚠️ Impossible de charger les départs. Vérifiez votre connexion.</div>';
+    }
+  }
+
+  // ── Perturbations iRail ───────────────────────────────────────────────────
+  async function loadDisturbances() {
+    const wrap   = document.getElementById("disturbances-wrap");
+    const timeEl = document.getElementById("disturbances-time");
+    try {
+      const res  = await fetch("https://api.irail.be/disturbances/?format=json&lang=fr");
+      const data = await res.json();
+      const dist = data.disturbance || [];
+
+      timeEl.textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-BE", {hour:"2-digit", minute:"2-digit"});
+
+     // Filtrer uniquement les perturbations qui concernent Tournai et environs
+const motsCles = ['tournai', 'kain', 'leuze', 'ath', 'lille', 'courtrai', 'kortrijk', 'mouscron'];
+const distFiltered = dist.filter(d => {
+  const texte = ((d.title || '') + ' ' + (d.description || '')).toLowerCase();
+  return motsCles.some(mot => texte.includes(mot));
+});
+
+if (!distFiltered.length) {
+  wrap.innerHTML = '<div class="no-disturbance">✅ Aucune perturbation signalée sur les lignes de Tournai.</div>';
+  return;
+}
+
+wrap.innerHTML = distFiltered.slice(0, 5).map(d => `
+  <div class="disturbance-card">
+    <div style="font-size:20px;flex-shrink:0;margin-top:1px">⚠️</div>
+    <div>
+      <div class="disturbance-title">${d.title || "Perturbation"}</div>
+      <div class="disturbance-desc">${d.description || ""}</div>
+    </div>
+  </div>
+`).join("");
+
+    } catch (e) {
+      wrap.innerHTML = '<div class="error-msg">⚠️ Impossible de charger les perturbations.</div>';
+    }
+  }
+
+  // ── Carte Leaflet + arrêts Overpass ──────────────────────────────────────
+  function initMap() {
+    const COLLEGE_LAT = 50.628922;
+    const COLLEGE_LNG = 3.389937;
+    const RAYON_M     = 1000;
+
+    const map = L.map('bus-map').setView([COLLEGE_LAT, COLLEGE_LNG], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 19
+    }).addTo(map);
+
+    // Marqueur collège
+    const schoolIcon = L.divIcon({
+      className: '',
+      html: `<div style="background:#3f5578;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.3);border:3px solid white;">🏫</div>`,
+      iconSize: [36, 36], iconAnchor: [18, 18]
+    });
+
+    L.marker([COLLEGE_LAT, COLLEGE_LNG], { icon: schoolIcon })
+      .addTo(map)
+      .bindPopup('<strong>Collège Notre-Dame de Kain</strong><br>Rue Abbé Dropsy, 2')
+      .openPopup();
+
+    // Cercle de rayon
+    L.circle([COLLEGE_LAT, COLLEGE_LNG], {
+      radius: RAYON_M, color: '#3f5578', fillColor: '#3f5578',
+      fillOpacity: 0.06, weight: 1.5, dashArray: '6 4'
+    }).addTo(map);
+
+    // Icône arrêt de bus
+    const busIcon = L.divIcon({
+      className: '',
+      html: `<div style="background:#f59c28;color:white;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,.25);border:2px solid white;">🚌</div>`,
+      iconSize: [28, 28], iconAnchor: [14, 14]
+    });
+
+    // Requête Overpass : arrêts + relations de bus
+    const query = `
+      [out:json][timeout:25];
+      (
+        node["highway"="bus_stop"](around:${RAYON_M},${COLLEGE_LAT},${COLLEGE_LNG});
+        node["public_transport"="stop_position"](around:${RAYON_M},${COLLEGE_LAT},${COLLEGE_LNG});
+        node["public_transport"="platform"](around:${RAYON_M},${COLLEGE_LAT},${COLLEGE_LNG});
+      )->.stops;
+      relation["type"="route"]["route"="bus"](bn.stops);
+      out body;
+      .stops out body;
+    `;
+
+    fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      body: 'data=' + encodeURIComponent(query)
+    })
+    .then(r => r.json())
+    .then(data => {
+      const elements  = data.elements || [];
+      const listEl    = document.getElementById('stops-list');
+      const countEl   = document.getElementById('stops-count');
+      const legendEl  = document.getElementById('lignes-legend');
+
+      const stops     = elements.filter(e => e.type === 'node');
+      const relations = elements.filter(e => e.type === 'relation');
+
+      // Index lignes par arrêt + infos lignes
+      const lignesParStop = {};
+      const lignesInfo    = {}; // ref → { ref, name }
+
+      relations.forEach(rel => {
+        const ref  = rel.tags?.ref || '';
+        const from = rel.tags?.from || '';
+        const to   = rel.tags?.to   || '';
+        const name = from && to ? `${from} → ${to}` : (rel.tags?.name || ref);
+
+        if (!ref) return;
+
+        if (!lignesInfo[ref]) {
+          lignesInfo[ref] = { ref, name };
+        }
+
+        (rel.members || []).forEach(m => {
+          if (m.type === 'node') {
+            if (!lignesParStop[m.ref]) lignesParStop[m.ref] = [];
+            if (!lignesParStop[m.ref].includes(ref)) {
+              lignesParStop[m.ref].push(ref);
+            }
+          }
+        });
+      });
+
+      // Filtrer les vrais arrêts
+      const arrets = stops.filter(s =>
+        s.tags?.highway === 'bus_stop' ||
+        s.tags?.public_transport === 'platform' ||
+        s.tags?.public_transport === 'stop_position'
+      );
+
+      if (!arrets.length) {
+        listEl.innerHTML  = '<span style="font-size:13px;color:var(--muted)">Aucun arrêt trouvé.</span>';
+        legendEl.innerHTML = '<span style="font-size:13px;color:var(--muted)">Aucune ligne trouvée.</span>';
+        return;
+      }
+
+      countEl.textContent = arrets.length + ' arrêt' + (arrets.length > 1 ? 's' : '') + ' trouvé' + (arrets.length > 1 ? 's' : '');
+      listEl.innerHTML = '';
+
+      // Marqueurs et pills
+      const noms = new Set();
+      arrets.forEach(stop => {
+        const nom    = stop.tags?.name || stop.tags?.ref || 'Arrêt sans nom';
+        const lignes = lignesParStop[stop.id] || [];
+
+        const lignesHtml = lignes.length
+          ? '<br>' + lignes.map(l =>
+              `<span style="display:inline-block;background:#3f5578;color:white;font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;margin:2px 2px 0 0">${l}</span>`
+            ).join('')
+          : '<br><span style="font-size:11px;color:#aaa">Lignes non renseignées</span>';
+
+        L.marker([stop.lat, stop.lon], { icon: busIcon })
+          .addTo(map)
+          .bindPopup(`<strong>${nom}</strong>${lignesHtml}`);
+
+        if (!noms.has(nom)) {
+          noms.add(nom);
+          const pill = document.createElement('span');
+          pill.className   = 'stop-pill';
+          pill.textContent = '🚌 ' + nom;
+          pill.title       = 'Centrer sur cet arrêt';
+          pill.onclick     = () => map.setView([stop.lat, stop.lon], 17);
+          listEl.appendChild(pill);
+        }
+      });
+
+      // Légende des lignes
+      const lignesUniques = Object.values(lignesInfo)
+        .sort((a, b) => a.ref.localeCompare(b.ref, undefined, { numeric: true }));
+
+      if (lignesUniques.length) {
+        legendEl.innerHTML = lignesUniques.map(l => `
+          <div class="ligne-item">
+            <span class="ligne-badge">${l.ref}</span>
+            <span class="ligne-nom">${l.name}</span>
+          </div>
+        `).join('');
+      } else {
+        legendEl.innerHTML = '<span style="font-size:13px;color:var(--muted)">Informations de lignes non disponibles.</span>';
+      }
+    })
+    .catch(() => {
+      document.getElementById('stops-list').innerHTML =
+        '<span class="error-msg">⚠️ Impossible de charger les arrêts.</span>';
+      document.getElementById('lignes-legend').innerHTML =
+        '<span class="error-msg">⚠️ Impossible de charger les lignes.</span>';
+    });
+  }
+
+  verifierConnexion();
+</script>
+
+</body>
+</html>

@@ -10,7 +10,9 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <style>
-    /* ── Login overlay ── */
+    /* ── Uniquement ce qui N'existe pas dans style.css ── */
+
+    /* Login overlay */
     #login-overlay {
       position: fixed;
       inset: 0;
@@ -25,7 +27,7 @@
     #login-overlay h2 { font-family: 'Raleway', sans-serif; color: var(--white); font-size: 24px; }
     #login-overlay p  { color: rgba(255,255,255,.65); font-size: 15px; }
 
-    /* ── Tableau départs ── */
+    /* Tableau départs */
     .departures-card {
       background: var(--white);
       border-radius: var(--radius-md);
@@ -79,7 +81,7 @@
     .delay-late { background: #fdecea; color: #c0392b; }
     .cancelled  { color: #c0392b; font-weight: 700; font-size: 12px; }
 
-    /* ── Perturbations ── */
+    /* Perturbations */
     .disturbances-wrap { display: grid; gap: 10px; margin-bottom: 40px; }
     .disturbance-card {
       background: #fff5f5;
@@ -107,7 +109,7 @@
       font-weight: 600;
     }
 
-    /* ── TEC ── */
+    /* TEC — seul .btn-tec n'existe pas dans style.css */
     .tec-card {
       background: var(--white);
       border: 1px solid var(--border);
@@ -122,17 +124,6 @@
       margin-bottom: 40px;
     }
     .tec-stops { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    .stop-pill {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 4px 12px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--navy);
-      cursor: pointer;
-    }
-    .stop-pill:hover { background: var(--border); }
     .btn-tec {
       display: inline-flex;
       align-items: center;
@@ -154,7 +145,7 @@
     }
     .btn-tec:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,132,61,.4); }
 
-    /* ── Carte Leaflet ── */
+    /* Carte Leaflet */
     .map-card {
       background: var(--white);
       border: 1px solid var(--border);
@@ -181,11 +172,8 @@
       gap: 8px;
     }
 
-    /* ── Légende lignes ── */
-    .lignes-legend {
-      padding: 16px 20px;
-      border-top: 1px solid var(--border);
-    }
+    /* Légende lignes */
+    .lignes-legend { padding: 16px 20px; border-top: 1px solid var(--border); }
     .lignes-legend-title {
       font-size: 11px;
       font-weight: 700;
@@ -219,13 +207,9 @@
       white-space: nowrap;
       flex-shrink: 0;
     }
-    .ligne-nom {
-      font-size: 13px;
-      color: var(--dark);
-    }
+    .ligne-nom { font-size: 13px; color: var(--dark); }
 
-    /* ── Utilitaires ── */
-    .loading { padding: 32px; text-align: center; color: var(--muted); font-size: 14px; }
+    /* Spinner — réutilise les variables de style.css */
     .spinner {
       display: inline-block;
       width: 18px; height: 18px;
@@ -237,7 +221,6 @@
       vertical-align: middle;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .error-msg { padding: 20px; text-align: center; color: #c0392b; font-size: 13px; }
   </style>
 </head>
 <body>
@@ -319,9 +302,10 @@
       </div>
       <div class="tec-card">
         <div>
-          <h4 style="font-family:'Raleway',sans-serif;font-size:17px;font-weight:700;color:var(--dark);margin-bottom:6px">Arrêts proches du Collège</h4>
+          <h4 class="tool-content" style="font-size:17px;margin-bottom:6px">Arrêts proches du Collège</h4>
           <p class="intro">Consultez les horaires en temps réel des bus TEC depuis les arrêts proches de l'école et de la gare de Tournai.</p>
           <div class="tec-stops">
+            <!-- Ces pills utilisent .stop-pill de style.css -->
             <span class="stop-pill">Kain Centre</span>
             <span class="stop-pill">Kain Église</span>
             <span class="stop-pill">Gare de Tournai</span>
@@ -342,18 +326,16 @@
       <div class="map-card">
         <div class="map-toolbar">
           <span class="station-badge">📍 Rayon 1000 m autour du Collège</span>
-          <span style="font-size:12px;color:var(--muted)">Source : OpenStreetMap</span>
+          <span class="user-info">Source : OpenStreetMap</span>
         </div>
         <div id="bus-map"></div>
-        <!-- Liste des arrêts (pills cliquables) -->
         <div id="stops-list" class="map-stops-list">
-          <span style="font-size:13px;color:var(--muted)"><span class="spinner"></span>Chargement des arrêts…</span>
+          <span class="intro"><span class="spinner"></span>Chargement des arrêts…</span>
         </div>
-        <!-- Légende des lignes -->
         <div class="lignes-legend">
           <p class="lignes-legend-title">Lignes desservant la zone</p>
           <div id="lignes-legend" class="lignes-legend-grid">
-            <span style="font-size:13px;color:var(--muted)"><span class="spinner"></span>Chargement…</span>
+            <span class="intro"><span class="spinner"></span>Chargement…</span>
           </div>
         </div>
       </div>
@@ -419,7 +401,7 @@
       const deps = data.departures?.departure || [];
 
       if (!deps.length) {
-        wrap.innerHTML = '<div class="loading">Aucun départ trouvé.</div>';
+        wrap.innerHTML = '<p class="intro" style="padding:24px;text-align:center">Aucun départ trouvé.</p>';
         return;
       }
 
@@ -460,7 +442,7 @@
       wrap.innerHTML = html;
 
     } catch (e) {
-      wrap.innerHTML = '<div class="error-msg">⚠️ Impossible de charger les départs. Vérifiez votre connexion.</div>';
+      wrap.innerHTML = '<p style="padding:20px;text-align:center;color:#c0392b">⚠️ Impossible de charger les départs.</p>';
     }
   }
 
@@ -475,30 +457,30 @@
 
       timeEl.textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-BE", {hour:"2-digit", minute:"2-digit"});
 
-     // Filtrer uniquement les perturbations qui concernent Tournai et environs
-const motsCles = ['tournai', 'kain', 'leuze', 'ath', 'lille', 'courtrai', 'kortrijk', 'mouscron'];
-const distFiltered = dist.filter(d => {
-  const texte = ((d.title || '') + ' ' + (d.description || '')).toLowerCase();
-  return motsCles.some(mot => texte.includes(mot));
-});
+      // Filtrer uniquement les perturbations qui concernent Tournai et environs
+      const motsCles = ['tournai', 'kain', 'leuze', 'ath', 'lille', 'courtrai', 'kortrijk', 'mouscron'];
+      const distFiltered = dist.filter(d => {
+        const texte = ((d.title || '') + ' ' + (d.description || '')).toLowerCase();
+        return motsCles.some(mot => texte.includes(mot));
+      });
 
-if (!distFiltered.length) {
-  wrap.innerHTML = '<div class="no-disturbance">✅ Aucune perturbation signalée sur les lignes de Tournai.</div>';
-  return;
-}
+      if (!distFiltered.length) {
+        wrap.innerHTML = '<div class="no-disturbance">✅ Aucune perturbation signalée sur les lignes de Tournai.</div>';
+        return;
+      }
 
-wrap.innerHTML = distFiltered.slice(0, 5).map(d => `
-  <div class="disturbance-card">
-    <div style="font-size:20px;flex-shrink:0;margin-top:1px">⚠️</div>
-    <div>
-      <div class="disturbance-title">${d.title || "Perturbation"}</div>
-      <div class="disturbance-desc">${d.description || ""}</div>
-    </div>
-  </div>
-`).join("");
+      wrap.innerHTML = distFiltered.slice(0, 5).map(d => `
+        <div class="disturbance-card">
+          <div style="font-size:20px;flex-shrink:0;margin-top:1px">⚠️</div>
+          <div>
+            <div class="disturbance-title">${d.title || "Perturbation"}</div>
+            <div class="disturbance-desc">${d.description || ""}</div>
+          </div>
+        </div>
+      `).join("");
 
     } catch (e) {
-      wrap.innerHTML = '<div class="error-msg">⚠️ Impossible de charger les perturbations.</div>';
+      wrap.innerHTML = '<p style="padding:20px;text-align:center;color:#c0392b">⚠️ Impossible de charger les perturbations.</p>';
     }
   }
 
@@ -515,7 +497,6 @@ wrap.innerHTML = distFiltered.slice(0, 5).map(d => `
       maxZoom: 19
     }).addTo(map);
 
-    // Marqueur collège
     const schoolIcon = L.divIcon({
       className: '',
       html: `<div style="background:#3f5578;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.3);border:3px solid white;">🏫</div>`,
@@ -527,20 +508,17 @@ wrap.innerHTML = distFiltered.slice(0, 5).map(d => `
       .bindPopup('<strong>Collège Notre-Dame de Kain</strong><br>Rue Abbé Dropsy, 2')
       .openPopup();
 
-    // Cercle de rayon
     L.circle([COLLEGE_LAT, COLLEGE_LNG], {
       radius: RAYON_M, color: '#3f5578', fillColor: '#3f5578',
       fillOpacity: 0.06, weight: 1.5, dashArray: '6 4'
     }).addTo(map);
 
-    // Icône arrêt de bus
     const busIcon = L.divIcon({
       className: '',
       html: `<div style="background:#f59c28;color:white;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,.25);border:2px solid white;">🚌</div>`,
       iconSize: [28, 28], iconAnchor: [14, 14]
     });
 
-    // Requête Overpass : arrêts + relations de bus
     const query = `
       [out:json][timeout:25];
       (
@@ -559,41 +537,32 @@ wrap.innerHTML = distFiltered.slice(0, 5).map(d => `
     })
     .then(r => r.json())
     .then(data => {
-      const elements  = data.elements || [];
-      const listEl    = document.getElementById('stops-list');
-      const countEl   = document.getElementById('stops-count');
-      const legendEl  = document.getElementById('lignes-legend');
+      const elements = data.elements || [];
+      const listEl   = document.getElementById('stops-list');
+      const countEl  = document.getElementById('stops-count');
+      const legendEl = document.getElementById('lignes-legend');
 
       const stops     = elements.filter(e => e.type === 'node');
       const relations = elements.filter(e => e.type === 'relation');
 
-      // Index lignes par arrêt + infos lignes
       const lignesParStop = {};
-      const lignesInfo    = {}; // ref → { ref, name }
+      const lignesInfo    = {};
 
       relations.forEach(rel => {
         const ref  = rel.tags?.ref || '';
         const from = rel.tags?.from || '';
         const to   = rel.tags?.to   || '';
         const name = from && to ? `${from} → ${to}` : (rel.tags?.name || ref);
-
         if (!ref) return;
-
-        if (!lignesInfo[ref]) {
-          lignesInfo[ref] = { ref, name };
-        }
-
+        if (!lignesInfo[ref]) lignesInfo[ref] = { ref, name };
         (rel.members || []).forEach(m => {
           if (m.type === 'node') {
             if (!lignesParStop[m.ref]) lignesParStop[m.ref] = [];
-            if (!lignesParStop[m.ref].includes(ref)) {
-              lignesParStop[m.ref].push(ref);
-            }
+            if (!lignesParStop[m.ref].includes(ref)) lignesParStop[m.ref].push(ref);
           }
         });
       });
 
-      // Filtrer les vrais arrêts
       const arrets = stops.filter(s =>
         s.tags?.highway === 'bus_stop' ||
         s.tags?.public_transport === 'platform' ||
@@ -601,15 +570,14 @@ wrap.innerHTML = distFiltered.slice(0, 5).map(d => `
       );
 
       if (!arrets.length) {
-        listEl.innerHTML  = '<span style="font-size:13px;color:var(--muted)">Aucun arrêt trouvé.</span>';
-        legendEl.innerHTML = '<span style="font-size:13px;color:var(--muted)">Aucune ligne trouvée.</span>';
+        listEl.innerHTML   = '<span class="intro">Aucun arrêt trouvé.</span>';
+        legendEl.innerHTML = '<span class="intro">Aucune ligne trouvée.</span>';
         return;
       }
 
       countEl.textContent = arrets.length + ' arrêt' + (arrets.length > 1 ? 's' : '') + ' trouvé' + (arrets.length > 1 ? 's' : '');
       listEl.innerHTML = '';
 
-      // Marqueurs et pills
       const noms = new Set();
       arrets.forEach(stop => {
         const nom    = stop.tags?.name || stop.tags?.ref || 'Arrêt sans nom';
@@ -628,7 +596,7 @@ wrap.innerHTML = distFiltered.slice(0, 5).map(d => `
         if (!noms.has(nom)) {
           noms.add(nom);
           const pill = document.createElement('span');
-          pill.className   = 'stop-pill';
+          pill.className   = 'stop-pill';  // classe de style.css
           pill.textContent = '🚌 ' + nom;
           pill.title       = 'Centrer sur cet arrêt';
           pill.onclick     = () => map.setView([stop.lat, stop.lon], 17);
@@ -636,26 +604,20 @@ wrap.innerHTML = distFiltered.slice(0, 5).map(d => `
         }
       });
 
-      // Légende des lignes
       const lignesUniques = Object.values(lignesInfo)
         .sort((a, b) => a.ref.localeCompare(b.ref, undefined, { numeric: true }));
 
-      if (lignesUniques.length) {
-        legendEl.innerHTML = lignesUniques.map(l => `
-          <div class="ligne-item">
-            <span class="ligne-badge">${l.ref}</span>
-            <span class="ligne-nom">${l.name}</span>
-          </div>
-        `).join('');
-      } else {
-        legendEl.innerHTML = '<span style="font-size:13px;color:var(--muted)">Informations de lignes non disponibles.</span>';
-      }
+      legendEl.innerHTML = lignesUniques.length
+        ? lignesUniques.map(l => `
+            <div class="ligne-item">
+              <span class="ligne-badge">${l.ref}</span>
+              <span class="ligne-nom">${l.name}</span>
+            </div>`).join('')
+        : '<span class="intro">Informations de lignes non disponibles.</span>';
     })
     .catch(() => {
-      document.getElementById('stops-list').innerHTML =
-        '<span class="error-msg">⚠️ Impossible de charger les arrêts.</span>';
-      document.getElementById('lignes-legend').innerHTML =
-        '<span class="error-msg">⚠️ Impossible de charger les lignes.</span>';
+      document.getElementById('stops-list').innerHTML   = '<p style="color:#c0392b;padding:12px">⚠️ Impossible de charger les arrêts.</p>';
+      document.getElementById('lignes-legend').innerHTML = '<p style="color:#c0392b;padding:12px">⚠️ Impossible de charger les lignes.</p>';
     });
   }
 

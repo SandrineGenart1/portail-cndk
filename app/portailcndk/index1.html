@@ -50,6 +50,18 @@
           <button type="button" class="btn btn-light"   id="logoutBtn" style="display:none">Se déconnecter</button>
           <p id="user" class="user-info"></p>
         </div>
+        <div class="topbar-actions">
+  <button type="button" class="btn btn-primary" id="loginBtn">Se connecter</button>
+  <button type="button" class="btn btn-light"   id="logoutBtn" style="display:none">Se déconnecter</button>
+
+  <!-- Nouveau bouton professeurs, caché par défaut -->
+  <a href="professeurs.html" id="btnEspaceProfesseurs"
+     class="btn btn-warning" style="display:none">
+    🎓 Espace professeurs
+  </a>
+
+  <p id="user" class="user-info"></p>
+</div>
       </header>
 
       <section class="hero">
@@ -113,6 +125,7 @@
 
       <section class="section" id="microsoft365">
         <div class="section-header">
+          
           <h3>Microsoft 365</h3>
           <p>Applications et services liés au compte scolaire</p>
         </div>
@@ -208,8 +221,9 @@
 
     // Les informations qu'on veut récupérer sur l'utilisateur
     const loginRequest = {
-      scopes: ["openid", "profile", "User.Read"]
+      scopes: ["openid", "profile", "User.Read", "GroupMember.Read.All"]
     };
+
 
     // Création de l'objet MSAL (c'est lui qui gère la connexion)
     const msalInstance = new msal.PublicClientApplication(msalConfig);
@@ -241,46 +255,77 @@
     };
 
     // ----------------------------------------------------------
-    // 4. AU CHARGEMENT DE LA PAGE
-    //    On vérifie si l'utilisateur est déjà connecté ou non
-    // ----------------------------------------------------------
+// 4. AU CHARGEMENT DE LA PAGE
+//    On vérifie si l'utilisateur est déjà connecté ou non
+// ----------------------------------------------------------
 
-    // "async" permet d'utiliser "await" pour attendre une réponse
-    async function verifierConnexion() {
+async function verifierConnexion() {
 
-      // On attend que MSAL vérifie si on revient d'une connexion Microsoft
-      const response = await msalInstance.handleRedirectPromise();
+  // On attend que MSAL vérifie si on revient d'une connexion Microsoft
+  const response = await msalInstance.handleRedirectPromise();
 
-      // CAS 1 : on revient juste de la page de connexion Microsoft
-      if (response && response.account) {
-        msalInstance.setActiveAccount(response.account);
+  // CAS 1 : on revient juste de la page de connexion Microsoft
+  if (response && response.account) {
+    msalInstance.setActiveAccount(response.account);
+  }
 
-        userEl.textContent      = "Connecté : " + (response.account.name || response.account.username);
-        loginBtn.style.display  = "none";
-        logoutBtn.style.display = "inline-block";
-        return;
-      }
+  // CAS 2 : l'utilisateur était déjà connecté (infos dans le cache)
+  const accounts = msalInstance.getAllAccounts();
 
-      // CAS 2 : l'utilisateur était déjà connecté (infos dans le cache)
-      const accounts = msalInstance.getAllAccounts();
+  if (accounts.length > 0) {
+    msalInstance.setActiveAccount(accounts[0]);
 
-      if (accounts.length > 0) {
-        msalInstance.setActiveAccount(accounts[0]);
+    userEl.textContent      = "Connecté : " + (accounts[0].name || accounts[0].username);
+    loginBtn.style.display  = "none";
+    logoutBtn.style.display = "inline-block";
 
-        userEl.textContent      = "Connecté : " + (accounts[0].name || accounts[0].username);
-        loginBtn.style.display  = "none";
-        logoutBtn.style.display = "inline-block";
-        return;
-      }
+    // ✅ NOUVEAU : on vérifie si c'est un professeur
+    await verifierProfesseur();
+    return;
+  }
 
-      // CAS 3 : personne n'est connecté
-      userEl.textContent      = "";
-      loginBtn.style.display  = "inline-block";
-      logoutBtn.style.display = "none";
+  // CAS 3 : personne n'est connecté
+  userEl.textContent      = "";
+  loginBtn.style.display  = "inline-block";
+  logoutBtn.style.display = "none";
+}
+
+// ----------------------------------------------------------
+// 5. VÉRIFICATION DU GROUPE PROFESSEURS (via Microsoft Graph)
+// ----------------------------------------------------------
+
+async function verifierProfesseur() {
+  try {
+    // On demande un token pour appeler Graph API
+    const tokenResponse = await msalInstance.acquireTokenSilent({
+      scopes: ["User.Read", "GroupMember.Read.All"],
+      account: msalInstance.getActiveAccount()
+    });
+
+    // On récupère les groupes de l'utilisateur
+    const graphResponse = await fetch("https://graph.microsoft.com/v1.0/me/memberOf", {
+      headers: { Authorization: "Bearer " + tokenResponse.accessToken }
+    });
+
+    const data = await graphResponse.json();
+    const groupes = data.value || [];
+
+    // On cherche un groupe dont le nom contient "professeurs" (insensible à la casse)
+    const estProfesseur = groupes.some(g =>
+      g.displayName && g.displayName.toLowerCase().includes("professeurs")
+    );
+
+    if (estProfesseur) {
+      document.getElementById("btnEspaceProfesseurs").style.display = "inline-block";
     }
 
-    // On lance la vérification dès que la page est chargée
-    verifierConnexion();
+  } catch (err) {
+    console.warn("Impossible de vérifier le groupe :", err);
+  }
+}
+
+// On lance la vérification dès que la page est chargée
+verifierConnexion();
 
   </script>
 

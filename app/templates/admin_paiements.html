@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Espace parent - CNDK</title>
+    <title>Comptabilité - Paiements</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
@@ -11,11 +11,11 @@
     <div class="page-header">
         <div>
             <p class="eyebrow">Portail CNDK</p>
-            <h1>Espace parent</h1>
-            <p class="subtitle">Consultez les activités de vos enfants et initiez un paiement en ligne.</p>
+            <h1>Back-office comptabilité</h1>
+            <p class="subtitle">Validation manuelle des paiements et suivi administratif.</p>
         </div>
         <div class="header-actions">
-            <a href="{{ url_for('main.admin_paiements') }}" class="btn-link">Accès comptabilité (test)</a>
+            <a href="{{ url_for('main.index') }}" class="btn-link">Retour espace parent</a>
         </div>
     </div>
 
@@ -31,7 +31,6 @@
 
     {% if lignes %}
     <div class="card">
-        
         <table>
             <thead>
                 <tr>
@@ -39,7 +38,7 @@
                     <th>Activité</th>
                     <th>Montant</th>
                     <th>Statut</th>
-                    <th>Action</th>
+                    <th>Action comptable</th>
                 </tr>
             </thead>
             <tbody>
@@ -57,23 +56,24 @@
                     </td>
                     <td>
                         {% if ligne[5] != "paye" %}
-                        <a href="{{ url_for('main.confirmation_paiement', activite_eleve_id=ligne[0]) }}" class="btn-payer">
-                                Payer en ligne
-                        </a>
+                        <form action="{{ url_for('main.admin_marquer_paye', activite_eleve_id=ligne[0]) }}"
+                            method="POST">
+                            <button type="submit" class="btn-admin">Marquer comme payé</button>
+                        </form>
                         {% else %}
-                        <span class="muted">Aucune action</span>
+                        <span class="muted">Déjà validé</span>
                         {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-        {% else %}
+    </div>
+    {% else %}
     <div class="card">
-        <p>Aucune activité à afficher pour le moment.</p>
+        <p>Aucune activité à traiter.</p>
     </div>
 {% endif %}
-    </div>
 </body>
 
 </html>

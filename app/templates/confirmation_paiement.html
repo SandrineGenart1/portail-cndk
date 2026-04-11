@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Confirmation paiement</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Portail CNDK</p>
+        <h1>Confirmation du paiement</h1>
+        <p class="subtitle">Vérifiez les informations avant de payer.</p>
+    </div>
+</div>
+
+<div class="card">
+
+    <p><strong>Élève :</strong> {{ ligne[3] }} {{ ligne[4] }}</p>
+    <p><strong>Activité :</strong> {{ ligne[5] }}</p>
+    <p><strong>Montant :</strong> {{ ligne[1] }} €</p>
+
+    <form action="{{ url_for('main.payer_en_ligne', activite_eleve_id=ligne[0]) }}" method="POST">
+        <button type="submit" class="btn-payer">
+            Confirmer le paiement
+        </button>
+    </form>
+
+    <br>
+
+    <a href="{{ url_for('main.index') }}" class="btn-link">
+        Annuler
+    </a>
+
+</div>
+
+</body>
+</html>

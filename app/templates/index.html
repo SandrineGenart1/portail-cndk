@@ -3,49 +3,48 @@
 {% block title %}Espace parent — CNDK{% endblock %}
 {% block eyebrow %}Portail CNDK{% endblock %}
 {% block page_title %}Espace parent{% endblock %}
-{% block page_subtitle %}Consultez les activités de vos enfants et initiez un paiement en ligne.{% endblock %}
+{% block page_subtitle %}Consultez les activités de vos enfants et régler un paiement en ligne.{% endblock %}
 
 {% block content %}
 
 {% if lignes %}
 <div class="card">
     <table>
-        <thead>
-            <tr>
-                <th>Élève</th>
-                <th>Activité</th>
-                <th>Montant</th>
-                <th>Statut</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for ligne in lignes %}
-            <tr>
-                <td>{{ ligne[1] }} {{ ligne[2] }}</td>
-                <td>{{ ligne[3] }}</td>
-                <td>{{ ligne[4] }} €</td>
-                <td>
-                    {% if ligne[5] == "paye" %}
+    <thead>
+        <tr>
+            <th>Élève</th>
+            <th>Activité</th>
+            <th>Montant</th>
+            <th>Statut</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for ligne in lignes %}
+        <tr>
+            <td>{{ ligne.eleve.prenom }} {{ ligne.eleve.nom }}</td>
+            <td>{{ ligne.activite.titre }}</td>
+            <td>{{ ligne.montant_attendu }} €</td>
+            <td>
+                {% if ligne.statut == "paye" %}
                     <span class="badge badge-success">Payé</span>
-                    {% else %}
+                {% else %}
                     <span class="badge badge-warning">En attente</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if ligne[5] != "paye" %}
-                    <a href="{{ url_for('main.confirmation_paiement', activite_eleve_id=ligne[0]) }}"
-                       class="btn btn-primary">
-                        Payer en ligne
-                    </a>
-                    {% else %}
+                {% endif %}
+            </td>
+            <td>
+                {% if ligne.statut != "paye" %}
+                <a href="{{ url_for('main.confirmation_paiement', activite_eleve_id=ligne.id) }}" class="btn-payer">
+                    Payer en ligne
+                </a>
+                {% else %}
                     <span class="muted">Aucune action</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 </div>
 
 {% else %}

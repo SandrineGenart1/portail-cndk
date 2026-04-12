@@ -1,22 +1,28 @@
 /* ─── Variables ───────────────────────────────────────────────────────────── */
 :root {
-  --navy:       #3f5578;
-  --gold:       #f59c28;
-  --dark:       #383c51;
-  --bg:         #f0f3f8;
-  --white:      #ffffff;
-  --muted:      #8592a8;
-  --border:     #dde3ed;
-  --text:       #1e2535;
-  --sidebar-w:  290px;
+  --sidebar-w: 290px;
 
-  --shadow-sm:  0 2px 8px rgba(56,60,81,.08);
-  --shadow-md:  0 8px 28px rgba(56,60,81,.12);
-  --shadow-lg:  0 16px 48px rgba(56,60,81,.16);
+  --navy: #1E3A5F;
+  --navy-dark: #152B47;
+  --amber: #D97706;
+  --gold: #D97706;
+  --dark: #152B47;
+  --bg: #F8FAFC;
+  --white: #FFFFFF;
+  --muted: #64748B;
+  --border: #E2E8F0;
+  --text: #1E293B;
 
-  --radius-sm:  10px;
-  --radius-md:  16px;
-  --radius-lg:  24px;
+  --green: #059669;
+  --red: #DC2626;
+
+  --shadow-sm: 0 2px 8px rgba(21,43,71,.08);
+  --shadow-md: 0 8px 28px rgba(21,43,71,.12);
+  --shadow-lg: 0 16px 48px rgba(21,43,71,.16);
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
 }
 
 /* ─── Reset ───────────────────────────────────────────────────────────────── */
@@ -39,7 +45,7 @@ body {
 /* ─── Sidebar ─────────────────────────────────────────────────────────────── */
 .sidebar {
   width: var(--sidebar-w);
-  background: var(--dark);
+  background: var(--navy);
   color: var(--white);
   padding: 0 20px 28px;   /* 0 en haut pour que le logo colle au bord */
   display: flex;

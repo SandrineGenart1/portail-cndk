@@ -1,3 +1,4 @@
+from app.models import ParentEleve, Eleve, Activite, ActiviteEleve
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from werkzeug.datastructures import ImmutableMultiDict
 from app.db import get_db_connection
@@ -51,36 +52,19 @@ def admin_dashboard():
 
 @main.route("/")
 def index():
-    parent_id = 1  # TODO : remplacer par flask_login.current_user.id
+    parent_id = 1  # simulation utilisateur connecté
 
-    conn = get_db_connection()
-    cur = conn.cursor()
+    lignes = (
+        ActiviteEleve.query
+        .join(Eleve, ActiviteEleve.eleve_id == Eleve.id)
+        .join(Activite, ActiviteEleve.activite_id == Activite.id)
+        .join(ParentEleve, ParentEleve.eleve_id == Eleve.id)
+        .filter(ParentEleve.parent_id == parent_id)
+        .order_by(Eleve.nom, Eleve.prenom)
+        .all()
+    )
 
-    try:
-        # Sécurité : on ne récupère que les activités des élèves
-        # liés à CE parent (la jointure sur parents_eleves garantit ça)
-        cur.execute("""
-            SELECT
-                ae.id,
-                e.prenom,
-                e.nom,
-                a.titre,
-                ae.montant_attendu,
-                ae.statut
-            FROM parents_eleves pe
-            JOIN eleves e ON pe.eleve_id = e.id
-            JOIN activites_eleves ae ON ae.eleve_id = e.id
-            JOIN activites a ON ae.activite_id = a.id
-            WHERE pe.parent_id = %s
-            ORDER BY e.nom, e.prenom;
-        """, (parent_id,))
-        lignes = cur.fetchall()
-
-    finally:
-        cur.close()
-        conn.close()
-
-    return render_template("index.html", lignes=lignes, role="parent", active="accueil", current_user_name="Parent (test)")
+    return render_template("index.html", lignes=lignes)
 
 
 @main.route("/confirmation-paiement/<int:activite_eleve_id>")

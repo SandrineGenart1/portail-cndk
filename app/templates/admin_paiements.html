@@ -1,79 +1,62 @@
-<!DOCTYPE html>
-<html lang="fr">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <title>Comptabilité - Paiements</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
+{% block title %}Suivi des paiements — Admin CNDK{% endblock %}
+{% block eyebrow %}Administration — Paiements{% endblock %}
+{% block page_title %}Suivi des paiements{% endblock %}
+{% block page_subtitle %}Validation manuelle des paiements et suivi administratif.{% endblock %}
 
-<body>
-    <div class="page-header">
-        <div>
-            <p class="eyebrow">Portail CNDK</p>
-            <h1>Back-office comptabilité</h1>
-            <p class="subtitle">Validation manuelle des paiements et suivi administratif.</p>
-        </div>
-        <div class="header-actions">
-            <a href="{{ url_for('main.index') }}" class="btn-link">Retour espace parent</a>
-        </div>
-    </div>
+{% block topbar_actions %}
+<a href="{{ url_for('main.admin_dashboard') }}" class="btn btn-light">← Tableau de bord</a>
+{% endblock %}
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    {% for categorie, message in messages %}
-    <div class="message message-{{ categorie }}">
-        {{ message }}
-    </div>
-    {% endfor %}
-    {% endif %}
-    {% endwith %}
+{% block content %}
 
-    {% if lignes %}
-    <div class="card">
-        <table>
-            <thead>
-                <tr>
-                    <th>Élève</th>
-                    <th>Activité</th>
-                    <th>Montant</th>
-                    <th>Statut</th>
-                    <th>Action comptable</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for ligne in lignes %}
-                <tr>
-                    <td>{{ ligne[1] }} {{ ligne[2] }}</td>
-                    <td>{{ ligne[3] }}</td>
-                    <td>{{ ligne[4] }} €</td>
-                    <td>
-                        {% if ligne[5] == "paye" %}
-                        <span class="badge badge-success">Payé</span>
-                        {% else %}
-                        <span class="badge badge-warning">En attente</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if ligne[5] != "paye" %}
-                        <form action="{{ url_for('main.admin_marquer_paye', activite_eleve_id=ligne[0]) }}"
-                            method="POST">
-                            <button type="submit" class="btn-admin">Marquer comme payé</button>
-                        </form>
-                        {% else %}
-                        <span class="muted">Déjà validé</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% else %}
-    <div class="card">
-        <p>Aucune activité à traiter.</p>
-    </div>
+{% if lignes %}
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Élève</th>
+                <th>Activité</th>
+                <th>Montant</th>
+                <th>Statut</th>
+                <th>Action comptable</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ligne in lignes %}
+            <tr>
+                <td>{{ ligne[1] }} {{ ligne[2] }}</td>
+                <td>{{ ligne[3] }}</td>
+                <td>{{ ligne[4] }} €</td>
+                <td>
+                    {% if ligne[5] == "paye" %}
+                    <span class="badge badge-success">Payé</span>
+                    {% else %}
+                    <span class="badge badge-warning">En attente</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if ligne[5] != "paye" %}
+                    <form action="{{ url_for('main.admin_marquer_paye', activite_eleve_id=ligne[0]) }}"
+                          method="POST" style="display:inline">
+                        <button type="submit" class="btn btn-primary">
+                            Marquer comme payé
+                        </button>
+                    </form>
+                    {% else %}
+                    <span class="muted">Déjà validé</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card">
+    <p style="color:var(--slate)">Aucun paiement à traiter.</p>
+</div>
 {% endif %}
-</body>
 
-</html>
+{% endblock %}

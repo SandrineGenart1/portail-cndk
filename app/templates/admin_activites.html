@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Activités — Admin CNDK{% endblock %}
+{% block eyebrow %}Administration — Activités{% endblock %}
+{% block page_title %}Gestion des activités{% endblock %}
+{% block page_subtitle %}Liste de toutes les activités et leur taux de paiement.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('main.admin_nouvelle_activite') }}" class="btn btn-amber">+ Nouvelle activité</a>
+<a href="{{ url_for('main.admin_dashboard') }}" class="btn btn-light">← Tableau de bord</a>
+{% endblock %}
+
+{% block content %}
+
+{% if activites %}
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Titre</th>
+                <th>Montant</th>
+                <th>Date limite</th>
+                <th>Statut</th>
+                <th>Paiements reçus</th>
+                <th>Progression</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for a in activites %}
+            {% set pct = ((a[6] / a[5] * 100) | int) if a[5] > 0 else 0 %}
+            <tr>
+                <td><strong>{{ a[1] }}</strong></td>
+                <td>{{ a[2] }} €</td>
+                <td>{{ a[3] }}</td>
+                <td>
+                    {% if a[4] == 'ouvert' %}<span class="badge badge-success">Ouvert</span>
+                    {% elif a[4] == 'clos' %}<span class="badge badge-warning">Clos</span>
+                    {% else %}<span class="badge">{{ a[4] }}</span>{% endif %}
+                </td>
+                <td>{{ a[6] }} / {{ a[5] }}</td>
+                <td>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" style="width:{{ pct }}%"></div>
+                    </div>
+                    <small style="margin-left:0.4rem;color:var(--slate)">{{ pct }}%</small>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card">
+    <p style="color:var(--slate);margin-bottom:1rem">Aucune activité créée pour le moment.</p>
+    <a href="{{ url_for('main.admin_nouvelle_activite') }}" class="btn btn-primary">Créer la première activité</a>
+</div>
+{% endif %}
+
+{% endblock %}

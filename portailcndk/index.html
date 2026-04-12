@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portail numérique - Collège de Kain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Raleway:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">
+        <a href="https://cndk.analept.be/"><img src="images/Logo_fd_blanc.png" alt="Logo CNDK"></a>
+      </div>
+    </div>
+
+    <nav class="menu">
+      <div class="menu-label">Navigation</div>
+      <a href="#accueil" class="menu-link active">
+        <span class="icon">🏠</span> Accueil
+      </a>
+      <a href="#ecole" class="menu-link">
+        <span class="icon">🏫</span> Outils de l'école
+      </a>
+      <a href="#microsoft365" class="menu-link">
+        <span class="icon">☁️</span> Microsoft 365
+      </a>
+      <a href="#aide" class="menu-link">
+        <span class="icon">❓</span> Aide
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <p>Connectez-vous avec votre <span>compte scolaire</span> pour accéder à tous les services.</p>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+    <header class="topbar" id="accueil">
+      <div class="topbar-left">
+        <p class="eyebrow">Espace élèves &amp; enseignants</p>
+        <h2>Bienvenue sur le portail numérique du CNDK</h2>
+        <p class="intro">
+          Retrouvez rapidement les principaux services utilisés au collège :
+          Microsoft 365, Smartschool et tous vos outils pédagogiques.
+        </p>
+      </div>
+
+      <div class="topbar-actions">
+        <button type="button" class="btn btn-primary" id="loginBtn">Se connecter</button>
+        <button type="button" class="btn btn-light"   id="logoutBtn" style="display:none">Se déconnecter</button>
+
+        <!-- Bouton espace professeurs, caché par défaut -->
+        <a href="professeurs.html" id="btnEspaceProfesseurs"
+           class="btn btn-warning" style="display:none">
+          🎓 Espace professeurs
+        </a>
+
+        <p id="user" class="user-info"></p>
+
+        <!-- Badge Prof / Élève, caché par défaut -->
+        <p id="roleUser" style="display:none; font-weight:bold;"></p>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-card">
+        <div class="hero-text">
+          <h3>Tous vos outils au même endroit</h3>
+          <p>
+            Messagerie, documents, Teams, Smartschool — tout est ici.
+            Connectez-vous une seule fois avec votre compte scolaire.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="ecole">
+      <div class="section-header">
+        <h3>🏫 Outils de l'école</h3>
+        <div class="section-header-line"></div>
+        <p>Services internes</p>
+      </div>
+      <div class="cards-grid">
+
+        <a class="tool-card school-card" href="https://cndk.smartschool.be/" target="_blank" rel="noopener">
+          <div class="tool-icon school">
+            <img src="images/logosmartschool_mini.png" alt="Smartschool">
+          </div>
+          <div class="tool-content">
+            <h4>Smartschool</h4>
+            <p>Journal de classe, devoirs, communications</p>
+          </div>
+        </a>
+
+        <a class="tool-card school-card" href="https://cndk.it-school.be/login" target="_blank" rel="noopener">
+          <div class="tool-icon itschool">
+            <img src="images/itschoollogo.png" alt="IT School">
+          </div>
+          <div class="tool-content">
+            <h4>IT School</h4>
+            <p>Règlement des factures, réservation de repas</p>
+          </div>
+        </a>
+
+        <a class="tool-card school-card" href="#" target="_blank" rel="noopener">
+          <div class="tool-icon gray">A</div>
+          <div class="tool-content">
+            <h4>Aide informatique</h4>
+            <p>Assistance et formulaire de contact</p>
+          </div>
+        </a>
+
+        <a class="tool-card school-card" href="transports.html" target="_blank">
+          <div class="tool-icon"><img src="images/bus.jpg" alt="transport"></div>
+          <div class="tool-content">
+            <h4>Transports</h4>
+            <p>Bus et train proches de l'école</p>
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+    <section class="section" id="microsoft365">
+      <div class="section-header">
+        <h3>
+          <img src="images/logo_MS365.png" alt="Microsoft 365" style="width:50px; height:50px; object-fit:contain; vertical-align:middle; margin-right:6px; position:relative; top:-2px;">
+          Microsoft 365
+        </h3>
+        <div class="section-header-line"></div>
+        <p>Applications scolaires</p>
+      </div>
+      <div class="cards-grid">
+
+        <a class="tool-card" href="https://outlook.office.com" target="_blank" rel="noopener">
+          <div class="tool-icon blue">O</div>
+          <div class="tool-content"><h4>Outlook</h4><p>Messagerie scolaire et calendrier</p></div>
+        </a>
+
+        <a class="tool-card" href="https://teams.microsoft.com" target="_blank" rel="noopener">
+          <div class="tool-icon purple">T</div>
+          <div class="tool-content"><h4>Teams</h4><p>Classes, réunions et échanges</p></div>
+        </a>
+
+        <a class="tool-card" href="https://word.cloud.microsoft" target="_blank" rel="noopener">
+          <div class="tool-icon darkblue">W</div>
+          <div class="tool-content"><h4>Word</h4><p>Traitement de texte en ligne</p></div>
+        </a>
+
+        <a class="tool-card" href="https://excel.cloud.microsoft" target="_blank" rel="noopener">
+          <div class="tool-icon green">X</div>
+          <div class="tool-content"><h4>Excel</h4><p>Tableurs et calculs</p></div>
+        </a>
+
+        <a class="tool-card" href="https://powerpoint.cloud.microsoft" target="_blank" rel="noopener">
+          <div class="tool-icon orange">P</div>
+          <div class="tool-content"><h4>PowerPoint</h4><p>Présentations et exposés</p></div>
+        </a>
+
+        <a class="tool-card" href="https://www.office.com" target="_blank" rel="noopener">
+          <div class="tool-icon red">M</div>
+          <div class="tool-content"><h4>Microsoft 365</h4><p>Accueil de toutes les applications</p></div>
+        </a>
+
+        <a class="tool-card" href="https://portal.office.com/onedrive" target="_blank" rel="noopener">
+          <div class="tool-icon cyan">D</div>
+          <div class="tool-content"><h4>OneDrive</h4><p>Stockage et documents personnels</p></div>
+        </a>
+
+        <a class="tool-card" href="https://www.onenote.com" target="_blank" rel="noopener">
+          <div class="tool-icon violet">N</div>
+          <div class="tool-content"><h4>OneNote</h4><p>Notes et organisation</p></div>
+        </a>
+
+      </div>
+    </section>
+
+    <section class="section" id="aide">
+      <div class="section-header">
+        <h3>❓ Aide</h3>
+        <div class="section-header-line"></div>
+        <p>Repères pour les utilisateurs</p>
+      </div>
+      <div class="info-panel">
+        <div class="info-box">
+          <h4>Connexion</h4>
+          <p>Utilisez votre compte scolaire pour accéder à tous les outils Microsoft 365.</p>
+        </div>
+        <div class="info-box">
+          <h4>Problème d'accès</h4>
+          <p>En cas de souci de mot de passe ou de connexion, contactez le support informatique.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="documents" style="display:none">
+      <div class="section-header">
+        <h3>📄 Documents administratifs</h3>
+        <div class="section-header-line"></div>
+        <p>Accès membres</p>
+      </div>
+      <div class="cards-grid">
+
+        <a class="tool-card school-card" href="documents/ROI.pdf" target="_blank">
+          <div class="tool-icon gray">📋</div>
+          <div class="tool-content">
+            <h4>Règlement d'Ordre Intérieur</h4>
+            <p>Document officiel du collège</p>
+          </div>
+        </a>
+
+        <a class="tool-card school-card" href="documents/absence.pdf" target="_blank">
+          <div class="tool-icon gray">🏥</div>
+          <div class="tool-content">
+            <h4>Justificatif d'absence</h4>
+            <p>Formulaire maladie et absence</p>
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="js/msal-browser.min.js"></script>
+<script>
+
+  // ----------------------------------------------------------
+  // 1. CONFIGURATION MSAL
+  // ----------------------------------------------------------
+  const msalConfig = {
+    auth: {
+      clientId:    "69d76af5-b3e4-4179-9f9b-1e1ff3ce7285",
+      authority:   "https://login.microsoftonline.com/1cdfb3d4-d7ed-45dd-8dd3-ba2863060f4e",
+      redirectUri: "https://cndk.analept.be/portail/"
+    },
+    cache: {
+      cacheLocation: "localStorage",
+      storeAuthStateInCookie: false
+    }
+  };
+
+  // ✅ Plus besoin de GroupMember.Read.All : on utilise les licences
+  const loginRequest = {
+    scopes: ["openid", "profile", "User.Read"]
+  };
+
+  const msalInstance = new msal.PublicClientApplication(msalConfig);
+
+  // ----------------------------------------------------------
+  // 2. ÉLÉMENTS HTML
+  // ----------------------------------------------------------
+  const loginBtn  = document.getElementById("loginBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const userEl    = document.getElementById("user");
+
+  // ----------------------------------------------------------
+  // 3. ACTIONS DES BOUTONS
+  // ----------------------------------------------------------
+  loginBtn.onclick  = () => msalInstance.loginRedirect(loginRequest);
+  logoutBtn.onclick = () => msalInstance.logoutRedirect({
+    postLogoutRedirectUri: "https://cndk.analept.be/portail/"
+  });
+
+  // ----------------------------------------------------------
+  // 4. VÉRIFICATION DE CONNEXION AU CHARGEMENT
+  // ----------------------------------------------------------
+  async function verifierConnexion() {
+    const response = await msalInstance.handleRedirectPromise();
+    const documentsSection = document.getElementById("documents");
+
+    if (response && response.account) {
+      msalInstance.setActiveAccount(response.account);
+    }
+
+    const accounts = msalInstance.getAllAccounts();
+
+    if (accounts.length > 0) {
+      msalInstance.setActiveAccount(accounts[0]);
+      userEl.textContent      = "✓ " + (accounts[0].name || accounts[0].username);
+      loginBtn.style.display  = "none";
+      logoutBtn.style.display = "inline-flex";
+      documentsSection.style.display = "block";
+
+      // Vérification du rôle via les licences
+      await verifierProfesseur();
+      return;
+    }
+
+    // Personne connecté
+    userEl.textContent      = "";
+    loginBtn.style.display  = "inline-flex";
+    logoutBtn.style.display = "none";
+    documentsSection.style.display = "none";
+  }
+
+  // ----------------------------------------------------------
+  // 5. DÉTECTION DU RÔLE VIA LES LICENCES MICROSOFT
+  // ----------------------------------------------------------
+  async function verifierProfesseur() {
+    try {
+      const tokenResponse = await msalInstance.acquireTokenSilent({
+        scopes: ["User.Read"],
+        account: msalInstance.getActiveAccount()
+      });
+
+      // On récupère les licences de l'utilisateur connecté
+      const graphResponse = await fetch("https://graph.microsoft.com/v1.0/me/licenseDetails", {
+        headers: { Authorization: "Bearer " + tokenResponse.accessToken }
+      });
+
+      const data = await graphResponse.json();
+      const licences = data.value || [];
+
+      // ⚠️ DIAGNOSTIC : affiche les licences dans la console (F12)
+      // Une fois le bon skuId trouvé, vous pouvez supprimer ces lignes
+      console.log("Licences détectées :", licences.map(l => ({
+        nom: l.skuPartNumber,
+        id:  l.skuId
+      })));
+
+      // SKU IDs des licences Microsoft enseignant / faculty
+      const licencesEnseignant = [
+        "94763226-9b3c-4e75-a931-5c89701abe66", // Microsoft 365 A3 for faculty
+        "e578b273-6db4-4691-bba0-8d691f4da603", // Microsoft 365 A1 for faculty
+        "4b590615-0888-425a-a965-b3bf7789848d", // Microsoft 365 A1 Plus for faculty
+        "18250162-5d87-4436-a834-d795c15c80f3", // Office 365 A1 for faculty
+        "a4585165-0533-458a-97e3-c400570268c4", // Office 365 A3 for faculty
+      ];
+
+      const estProfesseur = licences.some(l => licencesEnseignant.includes(l.skuId));
+
+      const roleEl = document.getElementById("roleUser");
+
+      if (estProfesseur) {
+        document.getElementById("btnEspaceProfesseurs").style.display = "inline-block";
+        roleEl.textContent = "🎓 Professeur";
+        roleEl.style.color = "#b45309"; // orange
+      } else {
+        roleEl.textContent = "🎒 Élève";
+        roleEl.style.color = "#1d4ed8"; // bleu
+      }
+
+      roleEl.style.display = "block";
+
+    } catch (err) {
+      console.warn("Impossible de vérifier la licence :", err);
+    }
+  }
+
+  verifierConnexion();
+
+  // ----------------------------------------------------------
+  // 6. MENU ACTIF AU SCROLL
+  // ----------------------------------------------------------
+  const sections = document.querySelectorAll('[id]');
+  const links    = document.querySelectorAll('.menu-link');
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector(`.menu-link[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { threshold: 0.4 });
+
+  sections.forEach(s => observer.observe(s));
+
+</script>
+
+</body>
+</html>

@@ -1,79 +1,57 @@
-<!DOCTYPE html>
-<html lang="fr">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <title>Espace parent - CNDK</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
+{% block title %}Espace parent — CNDK{% endblock %}
+{% block eyebrow %}Portail CNDK{% endblock %}
+{% block page_title %}Espace parent{% endblock %}
+{% block page_subtitle %}Consultez les activités de vos enfants et initiez un paiement en ligne.{% endblock %}
 
-<body>
-    <div class="page-header">
-        <div>
-            <p class="eyebrow">Portail CNDK</p>
-            <h1>Espace parent</h1>
-            <p class="subtitle">Consultez les activités de vos enfants et initiez un paiement en ligne.</p>
-        </div>
-        <div class="header-actions">
-            <a href="{{ url_for('main.admin_paiements') }}" class="btn-link">Accès comptabilité (test)</a>
-        </div>
-    </div>
+{% block content %}
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    {% for categorie, message in messages %}
-    <div class="message message-{{ categorie }}">
-        {{ message }}
-    </div>
-    {% endfor %}
-    {% endif %}
-    {% endwith %}
+{% if lignes %}
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Élève</th>
+                <th>Activité</th>
+                <th>Montant</th>
+                <th>Statut</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ligne in lignes %}
+            <tr>
+                <td>{{ ligne[1] }} {{ ligne[2] }}</td>
+                <td>{{ ligne[3] }}</td>
+                <td>{{ ligne[4] }} €</td>
+                <td>
+                    {% if ligne[5] == "paye" %}
+                    <span class="badge badge-success">Payé</span>
+                    {% else %}
+                    <span class="badge badge-warning">En attente</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if ligne[5] != "paye" %}
+                    <a href="{{ url_for('main.confirmation_paiement', activite_eleve_id=ligne[0]) }}"
+                       class="btn btn-primary">
+                        Payer en ligne
+                    </a>
+                    {% else %}
+                    <span class="muted">Aucune action</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 
-    {% if lignes %}
-    <div class="card">
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>Élève</th>
-                    <th>Activité</th>
-                    <th>Montant</th>
-                    <th>Statut</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for ligne in lignes %}
-                <tr>
-                    <td>{{ ligne[1] }} {{ ligne[2] }}</td>
-                    <td>{{ ligne[3] }}</td>
-                    <td>{{ ligne[4] }} €</td>
-                    <td>
-                        {% if ligne[5] == "paye" %}
-                        <span class="badge badge-success">Payé</span>
-                        {% else %}
-                        <span class="badge badge-warning">En attente</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if ligne[5] != "paye" %}
-                        <a href="{{ url_for('main.confirmation_paiement', activite_eleve_id=ligne[0]) }}" class="btn-payer">
-                                Payer en ligne
-                        </a>
-                        {% else %}
-                        <span class="muted">Aucune action</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-    <div class="card">
-        <p>Aucune activité à afficher pour le moment.</p>
-    </div>
+{% else %}
+<div class="card">
+    <p style="color:var(--slate)">Aucune activité à afficher pour le moment.</p>
+</div>
 {% endif %}
-    </div>
-</body>
 
-</html>
+{% endblock %}

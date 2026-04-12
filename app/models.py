@@ -1,6 +1,7 @@
 from app.extensions import db
+from sqlalchemy.dialects.postgresql import ARRAY
 
-
+#______Classe UtilisateurParent_____________
 class UtilisateurParent(db.Model):
     __tablename__ = "utilisateurs_parents"
 
@@ -22,7 +23,7 @@ class UtilisateurParent(db.Model):
     def __repr__(self):
         return f"<UtilisateurParent {self.prenom} {self.nom}>"
 
-
+#______Classe UtilisateurStaff_____________
 class UtilisateurStaff(db.Model):
     __tablename__ = "utilisateurs_staff"
 
@@ -39,14 +40,20 @@ class UtilisateurStaff(db.Model):
     def __repr__(self):
         return f"<UtilisateurStaff {self.prenom} {self.nom} ({self.role})>"
 
-
+#______Classe Eleve_____________
 class Eleve(db.Model):
     __tablename__ = "eleves"
+
+    __table_args__ = (
+        db.UniqueConstraint("prenom", "nom", "classe", "annee_scolaire", name="uq_eleve_identite_scolaire"),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     prenom = db.Column(db.String(50), nullable=False)
     nom = db.Column(db.String(50), nullable=False)
     classe = db.Column(db.String(10), nullable=False)
+    option = db.Column(db.String(50))
+    annee_scolaire = db.Column(db.String(20), nullable=False)
     actif = db.Column(db.Boolean, nullable=False, default=True)
 
     liens_parents = db.relationship(
@@ -64,7 +71,7 @@ class Eleve(db.Model):
     def __repr__(self):
         return f"<Eleve {self.prenom} {self.nom} ({self.classe})>"
 
-
+#______Classe ParentEleve_____________
 class ParentEleve(db.Model):
     __tablename__ = "parents_eleves"
 
@@ -86,7 +93,7 @@ class ParentEleve(db.Model):
     def __repr__(self):
         return f"<ParentEleve parent={self.parent_id} eleve={self.eleve_id}>"
 
-
+#______Classe Activités_____________
 class Activite(db.Model):
     __tablename__ = "activites"
 
@@ -99,6 +106,7 @@ class Activite(db.Model):
     statut = db.Column(db.String(20), nullable=False, default="ouvert")
     created_by = db.Column(db.Integer, db.ForeignKey("utilisateurs_staff.id"))
     created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
+    options_cibles = db.Column(ARRAY(db.String))
 
     createur = db.relationship("UtilisateurStaff", back_populates="activites_creees")
 

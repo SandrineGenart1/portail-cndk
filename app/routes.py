@@ -1,4 +1,5 @@
-from app.models import ParentEleve, Eleve, Activite, ActiviteEleve
+from app.extensions import db
+from app.models import ParentEleve, Eleve, Activite, ActiviteEleve, PaiementActivite
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from werkzeug.datastructures import ImmutableMultiDict
 from app.db import get_db_connection
@@ -6,34 +7,47 @@ from app.db import get_db_connection
 main = Blueprint("main", __name__)
 @main.route("/admin")
 def admin_dashboard():
-    """Tableau de bord admin avec statistiques rapides."""
-    conn = get_db_connection()
-    cur = conn.cursor()
+    """
+    Affiche le tableau de bord administrateur avec quelques statistiques globales.
+    Les calculs sont réalisés avec SQLAlchemy au lieu de requêtes SQL brutes.
+    """
 
-    try:
-        # Activités ouvertes
-        cur.execute("SELECT COUNT(*) FROM activites WHERE statut = 'ouvert';")
-        nb_activites_ouvertes = cur.fetchone()[0]
+    # Calcule le nombre d'activités dont le statut est "ouvert"
+    nb_activites_ouvertes = (
+        db.session.query(db.func.count(Activite.id))
+        .filter(Activite.statut == "ouvert")
+        .scalar()
+    )
 
-        # Paiements en attente ce mois
-        cur.execute("SELECT COUNT(*) FROM activites_eleves WHERE statut = 'en_attente';")
-        nb_en_attente = cur.fetchone()[0]
+    # Calcule le nombre de paiements encore en attente
+    # dans la table activites_eleves
+    nb_en_attente = (
+        db.session.query(db.func.count(ActiviteEleve.id))
+        .filter(ActiviteEleve.statut == "en_attente")
+        .scalar()
+    )
 
-        # Paiements reçus ce mois
-        cur.execute("""
-            SELECT COUNT(*), COALESCE(SUM(montant), 0)
-            FROM paiements_activites
-            WHERE statut = 'paye'
-              AND date_trunc('month', paye_le) = date_trunc('month', NOW());
-        """)
-        row = cur.fetchone()
-        nb_payes = row[0]
-        montant_encaisse = float(row[1])
+    # Calcule :
+    # - le nombre de paiements reçus ce mois-ci
+    # - le montant total encaissé ce mois-ci
+    row = (
+        db.session.query(
+            db.func.count(PaiementActivite.id),
+            db.func.coalesce(db.func.sum(PaiementActivite.montant), 0)
+        )
+        .filter(PaiementActivite.statut == "paye")
+        .filter(
+            db.func.date_trunc("month", PaiementActivite.paye_le)
+            == db.func.date_trunc("month", db.func.now())
+        )
+        .first()
+    )
 
-    finally:
-        cur.close()
-        conn.close()
+    # Récupération des résultats de la requête
+    nb_payes = row[0]
+    montant_encaisse = float(row[1])
 
+    # Construction du dictionnaire envoyé au template
     stats = {
         "nb_activites_ouvertes": nb_activites_ouvertes,
         "nb_en_attente": nb_en_attente,
@@ -41,10 +55,14 @@ def admin_dashboard():
         "montant_encaisse": f"{montant_encaisse:.2f}",
     }
 
-    return render_template("admin_dashboard.html", stats=stats, role="admin", active="dashboard", current_user_name="Administrateur (test)")
-
-
-
+    # Affichage du tableau de bord administrateur
+    return render_template(
+        "admin_dashboard.html",
+        stats=stats,
+        role="admin",
+        active="dashboard",
+        current_user_name="Administrateur (test)"
+    )
 
 # ─────────────────────────────────────────────────────────────
 # ESPACE PARENT
@@ -52,6 +70,10 @@ def admin_dashboard():
 
 @main.route("/")
 def index():
+    """
+    Affiche la liste des activités liées aux enfants du parent connecté.
+    """
+
     parent_id = 1  # simulation utilisateur connecté
 
     lignes = (
@@ -64,95 +86,103 @@ def index():
         .all()
     )
 
-    return render_template("index.html", lignes=lignes)
+    return render_template(
+        "index.html",
+        lignes=lignes,
+        role="parent",
+        active="accueil",
+        current_user_name="Parent (test)"
+    )
 
-
+# Confirmation-paeiment 
 @main.route("/confirmation-paiement/<int:activite_eleve_id>")
 def confirmation_paiement(activite_eleve_id):
-    parent_id = 1  # TODO : flask_login
+    """
+    Affiche la page de confirmation avant paiement.
+    Vérifie que l'activité demandée appartient bien à un enfant du parent connecté.
+    """
 
-    conn = get_db_connection()
-    cur = conn.cursor()
+    parent_id = 1  # simulation parent connecté
 
-    try:
-        # Sécurité : on vérifie que cet activite_eleve_id appartient
-        # bien à un enfant du parent connecté
-        cur.execute("""
-            SELECT ae.id, ae.montant_attendu, ae.statut,
-                   e.prenom, e.nom, a.titre
-            FROM activites_eleves ae
-            JOIN eleves e ON ae.eleve_id = e.id
-            JOIN activites a ON ae.activite_id = a.id
-            JOIN parents_eleves pe ON pe.eleve_id = e.id
-            WHERE ae.id = %s AND pe.parent_id = %s
-        """, (activite_eleve_id, parent_id))
+    ligne = (
+        ActiviteEleve.query
+        .join(Eleve, ActiviteEleve.eleve_id == Eleve.id)
+        .join(Activite, ActiviteEleve.activite_id == Activite.id)
+        .join(ParentEleve, ParentEleve.eleve_id == Eleve.id)
+        .filter(ActiviteEleve.id == activite_eleve_id)
+        .filter(ParentEleve.parent_id == parent_id)
+        .first()
+    )
 
-        ligne = cur.fetchone()
+    if ligne is None:
+        flash("Activité introuvable ou accès non autorisé.", "erreur")
+        return redirect(url_for("main.index"))
 
-        if ligne is None:
-            flash("Activité introuvable ou accès non autorisé.", "erreur")
-            return redirect(url_for("main.index"))
+    if ligne.statut == "paye":
+        flash("Cette activité est déjà payée.", "info")
+        return redirect(url_for("main.index"))
 
-        if ligne[2] == "paye":
-            flash("Cette activité est déjà payée.", "info")
-            return redirect(url_for("main.index"))
+    return render_template(
+        "confirmation_paiement.html",
+        ligne=ligne,
+        role="parent",
+        active="",
+        current_user_name="Parent (test)"
+    )
 
-    finally:
-        cur.close()
-        conn.close()
-
-    return render_template("confirmation_paiement.html", ligne=ligne, role="parent", active="", current_user_name="Parent (test)")
-
+#Payer en ligne
 
 @main.route("/payer-en-ligne/<int:activite_eleve_id>", methods=["POST"])
 def payer_en_ligne(activite_eleve_id):
-    parent_id = 1  # TODO : flask_login
+    """
+    Traite le paiement en ligne d'une activité.
+    Vérifie que l'activité appartient bien à un enfant du parent connecté,
+    empêche le double paiement, puis enregistre le paiement.
+    """
 
-    conn = get_db_connection()
-    cur = conn.cursor()
+    parent_id = 1  # simulation du parent connecté
 
-    try:
-        # Sécurité : même vérification que pour la confirmation
-        cur.execute("""
-            SELECT ae.montant_attendu, ae.statut
-            FROM activites_eleves ae
-            JOIN eleves e ON ae.eleve_id = e.id
-            JOIN parents_eleves pe ON pe.eleve_id = e.id
-            WHERE ae.id = %s AND pe.parent_id = %s
-        """, (activite_eleve_id, parent_id))
+    # Recherche de l'activité liée à un élève appartenant au parent connecté
+    ligne = (
+        ActiviteEleve.query
+        .join(Eleve, ActiviteEleve.eleve_id == Eleve.id)
+        .join(ParentEleve, ParentEleve.eleve_id == Eleve.id)
+        .filter(ActiviteEleve.id == activite_eleve_id)
+        .filter(ParentEleve.parent_id == parent_id)
+        .first()
+    )
 
-        resultat = cur.fetchone()
+    # Vérifie que l'activité existe bien et qu'elle appartient au bon parent
+    if ligne is None:
+        flash("Activité introuvable ou accès non autorisé.", "erreur")
+        return redirect(url_for("main.index"))
 
-        if resultat is None:
-            flash("Activité introuvable ou accès non autorisé.", "erreur")
-            return redirect(url_for("main.index"))
+    # Empêche un double paiement
+    if ligne.statut == "paye":
+        flash("Cette activité est déjà payée.", "info")
+        return redirect(url_for("main.index"))
 
-        montant, statut = resultat
+    # Création d'un paiement de test
+    paiement = PaiementActivite(
+        activite_eleve_id=ligne.id,
+        montant=ligne.montant_attendu,
+        statut="paye",
+        mode_paiement="test",
+        ref_transaction=f"TEST-{ligne.id}",
+        paye_le=db.func.now()
+    )
 
-        if statut == "paye":
-            flash("Déjà payé.", "info")
-            return redirect(url_for("main.index"))
+    # Ajout du paiement dans la session SQLAlchemy
+    db.session.add(paiement)
 
-        # Simulation paiement (→ remplacer par Mollie ici)
-        cur.execute("""
-            INSERT INTO paiements_activites
-            (activite_eleve_id, montant, statut, mode_paiement, ref_transaction, paye_le)
-            VALUES (%s, %s, 'paye', 'test', %s, NOW())
-        """, (activite_eleve_id, montant, f"TEST-{activite_eleve_id}"))
+    # Mise à jour du statut de l'activité élève
+    ligne.statut = "paye"
 
-        cur.execute("""
-            UPDATE activites_eleves SET statut = 'paye' WHERE id = %s
-        """, (activite_eleve_id,))
+    # Validation des changements dans la base
+    db.session.commit()
 
-        conn.commit()
-        flash("Paiement effectué avec succès !", "succes")
-
-    finally:
-        cur.close()
-        conn.close()
-
+    flash("Paiement effectué avec succès !", "succes")
     return redirect(url_for("main.index"))
-
 
 # ─────────────────────────────────────────────────────────────
 # BACK-OFFICE ADMIN
@@ -160,72 +190,68 @@ def payer_en_ligne(activite_eleve_id):
 
 @main.route("/admin/paiements")
 def admin_paiements():
-    conn = get_db_connection()
-    cur = conn.cursor()
+    """
+    Affiche la liste des paiements avec SQLAlchemy.
+    """
 
-    try:
-        cur.execute("""
-            SELECT
-                ae.id,
-                e.prenom,
-                e.nom,
-                a.titre,
-                ae.montant_attendu,
-                ae.statut
-            FROM activites_eleves ae
-            JOIN eleves e ON ae.eleve_id = e.id
-            JOIN activites a ON ae.activite_id = a.id
-            ORDER BY ae.statut, e.nom, e.prenom;
-        """)
-        lignes = cur.fetchall()
+    lignes = (
+        ActiviteEleve.query
+        .join(Eleve, ActiviteEleve.eleve_id == Eleve.id)
+        .join(Activite, ActiviteEleve.activite_id == Activite.id)
+        .order_by(ActiviteEleve.statut, Eleve.nom, Eleve.prenom)
+        .all()
+    )
 
-    finally:
-        cur.close()
-        conn.close()
+    return render_template(
+        "admin_paiements.html",
+        lignes=lignes,
+        role="admin",
+        active="paiements",
+        current_user_name="Administrateur (test)"
+    )
 
-    return render_template("admin_paiements.html", lignes=lignes, role="admin", active="paiements", current_user_name="Administrateur (test)")
-
-
+#_____________Route admin_marquer_paye_____________________
 @main.route("/admin/marquer-paye/<int:activite_eleve_id>", methods=["POST"])
 def admin_marquer_paye(activite_eleve_id):
-    conn = get_db_connection()
-    cur = conn.cursor()
+    """
+    Marque une activité élève comme payée depuis le back-office comptabilité.
+    Crée aussi une ligne dans la table des paiements.
+    """
 
-    try:
-        cur.execute("""
-            SELECT montant_attendu, statut FROM activites_eleves WHERE id = %s
-        """, (activite_eleve_id,))
-        resultat = cur.fetchone()
+    # Recherche de la ligne activite_eleve correspondant à l'identifiant reçu
+    ligne = ActiviteEleve.query.get(activite_eleve_id)
 
-        if resultat is None:
-            flash("Activité introuvable.", "erreur")
-            return redirect(url_for("main.admin_paiements"))
+    # Vérifie que la ligne existe bien
+    if ligne is None:
+        flash("Activité introuvable.", "erreur")
+        return redirect(url_for("main.admin_paiements"))
 
-        montant, statut = resultat
+    # Empêche de marquer deux fois la même activité comme payée
+    if ligne.statut == "paye":
+        flash("Cette activité est déjà marquée comme payée.", "info")
+        return redirect(url_for("main.admin_paiements"))
 
-        if statut == "paye":
-            flash("Cette activité est déjà marquée comme payée.", "info")
-            return redirect(url_for("main.admin_paiements"))
+    # Création d'un enregistrement dans la table paiements_activites
+    paiement = PaiementActivite(
+        activite_eleve_id=ligne.id,
+        montant=ligne.montant_attendu,
+        statut="paye",
+        mode_paiement="manuel",
+        ref_transaction=f"MANUEL-{ligne.id}",
+        paye_le=db.func.now()
+    )
 
-        cur.execute("""
-            INSERT INTO paiements_activites
-            (activite_eleve_id, montant, statut, mode_paiement, ref_transaction, paye_le)
-            VALUES (%s, %s, 'paye', 'manuel', %s, NOW())
-        """, (activite_eleve_id, montant, f"MANUEL-{activite_eleve_id}"))
+    # Ajout du paiement dans la session SQLAlchemy
+    db.session.add(paiement)
 
-        cur.execute("""
-            UPDATE activites_eleves SET statut = 'paye' WHERE id = %s
-        """, (activite_eleve_id,))
+    # Mise à jour du statut dans activites_eleves
+    ligne.statut = "paye"
 
-        conn.commit()
-        flash("Paiement marqué comme payé par la comptabilité.", "succes")
+    # Validation des changements en base de données
+    db.session.commit()
 
-    finally:
-        cur.close()
-        conn.close()
-
+    flash("Paiement marqué comme payé par la comptabilité.", "succes")
     return redirect(url_for("main.admin_paiements"))
-
 
 # ─────────────────────────────────────────────────────────────
 # CRÉATION D'ACTIVITÉS ET AFFECTATION AUX CLASSES

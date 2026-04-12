@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Confirmation paiement</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 
@@ -17,11 +17,22 @@
 
 <div class="card">
 
-    <p><strong>Élève :</strong> {{ ligne[3] }} {{ ligne[4] }}</p>
-    <p><strong>Activité :</strong> {{ ligne[5] }}</p>
-    <p><strong>Montant :</strong> {{ ligne[1] }} €</p>
+    <p>
+        <strong>Élève :</strong>
+        {{ ligne.eleve.prenom }} {{ ligne.eleve.nom }}
+    </p>
 
-    <form action="{{ url_for('main.payer_en_ligne', activite_eleve_id=ligne[0]) }}" method="POST">
+    <p>
+        <strong>Activité :</strong>
+        {{ ligne.activite.titre }}
+    </p>
+
+    <p>
+        <strong>Montant :</strong>
+        {{ ligne.montant_attendu }} €
+    </p>
+
+    <form action="{{ url_for('main.payer_en_ligne', activite_eleve_id=ligne.id) }}" method="POST">
         <button type="submit" class="btn-payer">
             Confirmer le paiement
         </button>

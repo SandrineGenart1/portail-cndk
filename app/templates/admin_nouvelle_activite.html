@@ -1,127 +1,149 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Nouvelle activité - Admin CNDK</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        .form-section {
-            margin-bottom: 1.5rem;
-        }
-        .form-section label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 0.4rem;
-            color: #1E3A5F;
-        }
-        .form-section input[type="text"],
-        .form-section input[type="number"],
-        .form-section input[type="date"],
-        .form-section textarea {
-            width: 100%;
-            padding: 0.6rem 0.8rem;
-            border: 1px solid #CBD5E1;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-family: inherit;
-            box-sizing: border-box;
-        }
-        .form-section textarea {
-            min-height: 80px;
-            resize: vertical;
-        }
-        .classes-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        }
-        .classe-checkbox {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: #F0F9FF;
-            border: 1px solid #BAE6FD;
-            border-radius: 6px;
-            padding: 0.5rem 0.8rem;
-            cursor: pointer;
-            transition: background 0.15s;
-        }
-        .classe-checkbox:hover {
-            background: #E0F2FE;
-        }
-        .classe-checkbox input[type="checkbox"] {
-            accent-color: #1E3A5F;
-            width: 16px;
-            height: 16px;
-        }
-        .classe-checkbox.checked {
-            background: #1E3A5F;
-            color: white;
-            border-color: #1E3A5F;
-        }
-        .btn-selectionner-tout {
-            background: none;
-            border: 1px solid #1E3A5F;
-            color: #1E3A5F;
-            padding: 0.3rem 0.8rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            margin-bottom: 0.5rem;
-        }
-        .btn-selectionner-tout:hover {
-            background: #1E3A5F;
-            color: white;
-        }
-        .form-actions {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            margin-top: 2rem;
-        }
-        .hint {
-            font-size: 0.85rem;
-            color: #64748B;
-            margin-top: 0.3rem;
-        }
-        .obligatoire-toggle {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-        }
-        .obligatoire-toggle input[type="checkbox"] {
-            accent-color: #D97706;
-            width: 18px;
-            height: 18px;
-        }
-    </style>
-</head>
-<body>
+{% extends "base.html" %}
 
-<div class="page-header">
-    <div>
-        <p class="eyebrow">Portail CNDK — Administration</p>
-        <h1>Nouvelle activité</h1>
-        <p class="subtitle">Créez une activité et affectez-la aux classes concernées.</p>
-    </div>
-    <div class="header-actions">
-        <a href="{{ url_for('main.admin_activites') }}" class="btn-link">← Retour aux activités</a>
-    </div>
-</div>
+{% block title %}Nouvelle activité — Admin CNDK{% endblock %}
+{% block eyebrow %}Administration — Activités{% endblock %}
+{% block page_title %}Nouvelle activité{% endblock %}
+{% block page_subtitle %}Créez une activité et affectez-la aux classes concernées.{% endblock %}
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-{% if messages %}
-    {% for categorie, message in messages %}
-    <div class="message message-{{ categorie }}">{{ message }}</div>
-    {% endfor %}
-{% endif %}
-{% endwith %}
+{% block topbar_actions %}
+<a href="{{ url_for('main.admin_activites') }}" class="btn btn-light">← Retour aux activités</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-section label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+        color: var(--navy);
+    }
+
+    .form-section input[type="text"],
+    .form-section input[type="number"],
+    .form-section input[type="date"],
+    .form-section textarea {
+        width: 100%;
+        padding: 0.6rem 0.8rem;
+        border: 1px solid #CBD5E1;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-family: inherit;
+        box-sizing: border-box;
+    }
+
+    .form-section textarea {
+        min-height: 80px;
+        resize: vertical;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+
+    .classes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .classe-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #F0F9FF;
+        border: 1px solid #BAE6FD;
+        border-radius: 6px;
+        padding: 0.5rem 0.8rem;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .classe-checkbox:hover {
+        background: #E0F2FE;
+    }
+
+    .classe-checkbox input[type="checkbox"] {
+        accent-color: var(--navy);
+        width: 16px;
+        height: 16px;
+    }
+
+    .classe-checkbox.checked {
+        background: var(--navy);
+        color: white;
+        border-color: var(--navy);
+    }
+
+    .btn-selectionner-tout {
+        background: none;
+        border: 1px solid var(--navy);
+        color: var(--navy);
+        padding: 0.3rem 0.8rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .btn-selectionner-tout:hover {
+        background: var(--navy);
+        color: white;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        margin-top: 2rem;
+    }
+
+    .hint {
+        font-size: 0.85rem;
+        color: var(--slate);
+        margin-top: 0.3rem;
+    }
+
+    .obligatoire-toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    .obligatoire-toggle input[type="checkbox"] {
+        accent-color: var(--amber);
+        width: 18px;
+        height: 18px;
+    }
+
+    .recap-box {
+        background: #F0FFF4;
+        border: 1px solid #86EFAC;
+        border-radius: 6px;
+        padding: 0.8rem 1rem;
+        margin-top: 0.5rem;
+        display: none;
+    }
+
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
 
 <div class="card">
     <form action="{{ url_for('main.admin_nouvelle_activite') }}" method="POST">
 
-        {# ── Informations de base ───────────────────────────────── #}
         <div class="form-section">
             <label for="titre">Titre de l'activité *</label>
             <input type="text" id="titre" name="titre"
@@ -131,12 +153,14 @@
         </div>
 
         <div class="form-section">
-            <label for="description">Description <span style="font-weight:normal;color:#64748B">(optionnel)</span></label>
+            <label for="description">
+                Description <span style="font-weight:normal;color:var(--slate)">(optionnel)</span>
+            </label>
             <textarea id="description" name="description"
                       placeholder="Informations complémentaires pour les parents…">{{ form_data.get('description', '') }}</textarea>
         </div>
 
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+        <div class="form-grid">
             <div class="form-section">
                 <label for="montant">Montant (€) *</label>
                 <input type="number" id="montant" name="montant"
@@ -165,13 +189,11 @@
             </div>
         </div>
 
-        {# ── Sélection des classes ──────────────────────────────── #}
         <div class="form-section">
             <label>Classes concernées *</label>
             <p class="hint">Cochez les classes dont les élèves doivent payer cette activité.</p>
 
-            <button type="button" class="btn-selectionner-tout"
-                    onclick="toggleTout()">
+            <button type="button" class="btn-selectionner-tout" onclick="toggleTout()">
                 Tout sélectionner / désélectionner
             </button>
 
@@ -190,22 +212,20 @@
                 {% endfor %}
             </div>
             {% else %}
-            <p class="hint" style="color:#EF4444">
+            <p class="hint" style="color:var(--red)">
                 Aucune classe trouvée dans la base de données.
                 Vérifiez que des élèves actifs existent avec un champ "classe" renseigné.
             </p>
             {% endif %}
         </div>
 
-        {# ── Récapitulatif avant soumission ────────────────────── #}
-        <div id="recap" class="hint" style="background:#F0FFF4; border:1px solid #86EFAC;
-             border-radius:6px; padding:0.8rem 1rem; margin-top:0.5rem; display:none;">
+        <div id="recap" class="recap-box">
             <strong>Récapitulatif :</strong>
             <span id="recap-texte"></span>
         </div>
 
         <div class="form-actions">
-            <button type="submit" class="btn-payer">
+            <button type="submit" class="btn btn-primary">
                 Créer l'activité et affecter les élèves
             </button>
             <a href="{{ url_for('main.admin_activites') }}" class="btn-link">Annuler</a>
@@ -214,8 +234,10 @@
     </form>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
 <script>
-    // Met à jour le style visuel d'une case classe quand on la coche/décoche
     function updateStyle(classe, checkbox) {
         const label = document.getElementById('label-' + classe);
         if (checkbox.checked) {
@@ -226,7 +248,6 @@
         updateRecap();
     }
 
-    // Sélectionne ou désélectionne toutes les classes
     function toggleTout() {
         const checkboxes = document.querySelectorAll('input[name="classes"]');
         const toutCoche = Array.from(checkboxes).every(cb => cb.checked);
@@ -237,7 +258,6 @@
         updateRecap();
     }
 
-    // Affiche un récapitulatif des classes sélectionnées
     function updateRecap() {
         const cochees = Array.from(
             document.querySelectorAll('input[name="classes"]:checked')
@@ -254,12 +274,10 @@
         }
     }
 
-    // Initialisation au chargement
     document.querySelectorAll('input[name="classes"]').forEach(cb => {
         cb.addEventListener('change', updateRecap);
     });
+
     updateRecap();
 </script>
-
-</body>
-</html>
+{% endblock %}

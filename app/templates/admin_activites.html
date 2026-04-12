@@ -27,32 +27,57 @@
         </thead>
         <tbody>
         {% for a in activites %}
-            {% set pct = ((a[6] / a[5] * 100) | int) if a[5] > 0 else 0 %}
+
+            {# On donne des noms aux colonnes → BEAUCOUP plus clair #}
+            {% set id = a[0] %}
+            {% set titre = a[1] %}
+            {% set montant = a[2] %}
+            {% set date_limite = a[3] %}
+            {% set statut = a[4] %}
+            {% set total = a[5] %}
+            {% set payes = a[6] %}
+
+            {% set pct = ((payes / total * 100) | int) if total > 0 else 0 %}
+
             <tr>
-                <td><strong>{{ a[1] }}</strong></td>
-                <td>{{ a[2] }} €</td>
-                <td>{{ a[3] }}</td>
+                <td><strong>{{ titre }}</strong></td>
+                <td>{{ montant }} €</td>
+                <td>{{ date_limite }}</td>
+
                 <td>
-                    {% if a[4] == 'ouvert' %}<span class="badge badge-success">Ouvert</span>
-                    {% elif a[4] == 'clos' %}<span class="badge badge-warning">Clos</span>
-                    {% else %}<span class="badge">{{ a[4] }}</span>{% endif %}
+                    {% if statut == 'ouvert' %}
+                        <span class="badge badge-success">Ouvert</span>
+                    {% elif statut == 'clos' %}
+                        <span class="badge badge-warning">Clos</span>
+                    {% else %}
+                        <span class="badge">{{ statut }}</span>
+                    {% endif %}
                 </td>
-                <td>{{ a[6] }} / {{ a[5] }}</td>
+
+                <td>{{ payes }} / {{ total }}</td>
+
                 <td>
                     <div class="progress-bar-bg">
-                        <div class="progress-bar-fill" style="width:{{ pct }}%"></div>
+                       <div class="progress-bar-fill" style="width: {{ pct }}%;"></div>
                     </div>
-                    <small style="margin-left:0.4rem;color:var(--slate)">{{ pct }}%</small>
+                    <small style="margin-left:0.4rem;color:var(--slate)">
+                        {{ pct }}%
+                    </small>
                 </td>
             </tr>
+
         {% endfor %}
         </tbody>
     </table>
 </div>
 {% else %}
 <div class="card">
-    <p style="color:var(--slate);margin-bottom:1rem">Aucune activité créée pour le moment.</p>
-    <a href="{{ url_for('main.admin_nouvelle_activite') }}" class="btn btn-primary">Créer la première activité</a>
+    <p style="color:var(--slate);margin-bottom:1rem">
+        Aucune activité créée pour le moment.
+    </p>
+    <a href="{{ url_for('main.admin_nouvelle_activite') }}" class="btn btn-primary">
+        Créer la première activité
+    </a>
 </div>
 {% endif %}
 

@@ -15,6 +15,8 @@ class Config:
     SQLALCHEMY_DATABASE_URI = (
         f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
     )
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
     MOLLIE_API_KEY = os.getenv("MOLLIE_API_KEY")
     MOLLIE_REDIRECT_URL = os.getenv("MOLLIE_REDIRECT_URL")
     MOLLIE_WEBHOOK_URL = os.getenv("MOLLIE_WEBHOOK_URL")

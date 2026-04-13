@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}Paiement — {{ ae.activite.titre }}{% endblock %}
+{% block eyebrow %}Espace parent — Paiement{% endblock %}
+{% block page_title %}{{ ae.activite.titre }}{% endblock %}
+{% block page_subtitle %}Scannez le QR code avec votre app bancaire pour effectuer le virement.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('main.index') }}" class="btn btn-light">← Retour</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .paiement-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        align-items: start;
+    }
+
+    @media (max-width: 768px) {
+        .paiement-layout { grid-template-columns: 1fr; }
+    }
+
+    /* ── Carte QR code ── */
+    .qr-card {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+    }
+
+    .qr-card img {
+        width: 220px;
+        height: 220px;
+        border: 6px solid var(--navy);
+        border-radius: 10px;
+        display: block;
+        margin: 0 auto 1.25rem;
+    }
+
+    .qr-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--slate);
+        margin-bottom: 0.5rem;
+    }
+
+    .qr-amount {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--navy);
+        line-height: 1;
+    }
+
+    .qr-activity {
+        font-size: 0.9rem;
+        color: var(--slate);
+        margin-top: 0.3rem;
+    }
+
+    .qr-reference {
+        display: inline-block;
+        margin-top: 1rem;
+        background: #F0F9FF;
+        border: 1px solid #BAE6FD;
+        border-radius: 8px;
+        padding: 0.6rem 1rem;
+        font-family: 'Courier New', monospace;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--navy);
+        letter-spacing: 0.05em;
+    }
+
+    .btn-download {
+        margin-top: 1rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: var(--light);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+        color: var(--navy);
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .btn-download:hover { background: var(--border); }
+
+    /* ── Carte instructions ── */
+    .instructions-card {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.75rem;
+    }
+
+    .instructions-card h3 {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--navy);
+        margin: 0 0 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .step {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.1rem;
+        align-items: flex-start;
+    }
+
+    .step-number {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--navy);
+        color: white;
+        font-size: 0.8rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 0.1rem;
+    }
+
+    .step-text strong {
+        display: block;
+        font-size: 0.9rem;
+        color: var(--navy);
+        margin-bottom: 0.2rem;
+    }
+
+    .step-text p {
+        font-size: 0.82rem;
+        color: var(--slate);
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    .divider { height: 1px; background: var(--border); margin: 1.25rem 0; }
+
+    /* ── Données virement manuel ── */
+    .virement-data {
+        background: #F8FAFC;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+    }
+
+    .virement-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 0.4rem 0;
+        border-bottom: 1px solid #F1F5F9;
+        font-size: 0.875rem;
+        gap: 1rem;
+    }
+
+    .virement-row:last-child { border-bottom: none; }
+
+    .virement-label {
+        color: var(--slate);
+        font-weight: 500;
+        flex-shrink: 0;
+    }
+
+    .virement-value {
+        color: var(--navy);
+        font-weight: 600;
+        text-align: right;
+        font-family: 'Courier New', monospace;
+    }
+
+    .virement-value.ref {
+        font-size: 1rem;
+        color: #D97706;
+    }
+
+    /* ── Badge statut ── */
+    .statut-banner {
+        background: #FFFBEB;
+        border: 1px solid #FCD34D;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        color: #92400E;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .date-limite {
+        font-weight: 700;
+        color: var(--red, #DC2626);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# Bandeau date limite #}
+<div class="statut-banner">
+    ⏳ Paiement attendu avant le
+    <span class="date-limite">{{ ae.activite.date_limite_paiement.strftime('%d/%m/%Y') }}</span>
+    — montant : <strong>{{ ae.montant_attendu }} €</strong>
+</div>
+
+<div class="paiement-layout">
+
+    {# ── Colonne QR code ──────────────────────────────────── #}
+    <div class="qr-card">
+        <p class="qr-label">Scannez pour payer</p>
+
+        <img src="data:image/png;base64,{{ qr_b64 }}"
+             alt="QR code paiement {{ ae.activite.titre }}"
+             id="qrImg">
+
+        <div class="qr-amount">{{ ae.montant_attendu }} €</div>
+        <div class="qr-activity">{{ ae.activite.titre }} — {{ ae.eleve.prenom }} {{ ae.eleve.nom }}</div>
+
+        <div class="qr-reference">{{ reference }}</div>
+
+        <br>
+        <a href="{{ url_for('main.qrcode_image', activite_eleve_id=ae.id) }}"
+           download="paiement_{{ ae.id }}.png"
+           class="btn-download">
+            ⬇ Télécharger le QR code
+        </a>
+    </div>
+
+    {# ── Colonne instructions + données virement ──────────── #}
+    <div>
+        <div class="instructions-card">
+            <h3>📱 Comment payer avec le QR code</h3>
+
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-text">
+                    <strong>Ouvrez votre app bancaire</strong>
+                    <p>BNP Paribas Fortis, ING, KBC, Belfius, Argenta, Fintro…
+                       toutes les banques belges supportent ce format.</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-text">
+                    <strong>Scannez le QR code</strong>
+                    <p>Utilisez la fonction "Scanner" ou "Payer par QR"
+                       dans votre application bancaire.</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-text">
+                    <strong>Vérifiez et confirmez</strong>
+                    <p>Le montant, l'IBAN et la communication sont
+                       pré-remplis automatiquement. Confirmez le virement.</p>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <h3>🏦 Ou effectuez un virement manuel</h3>
+            <p style="font-size:0.82rem;color:var(--slate);margin-bottom:0.9rem">
+                Si vous préférez encoder le virement manuellement :
+            </p>
+
+            <div class="virement-data">
+                <div class="virement-row">
+                    <span class="virement-label">Bénéficiaire</span>
+                    <span class="virement-value">Collège de Kain ASBL</span>
+                </div>
+                <div class="virement-row">
+                    <span class="virement-label">IBAN</span>
+                    <span class="virement-value">BE00 0000 0000 0000</span>
+                </div>
+                <div class="virement-row">
+                    <span class="virement-label">Montant</span>
+                    <span class="virement-value">{{ ae.montant_attendu }} €</span>
+                </div>
+                <div class="virement-row">
+                    <span class="virement-label">Communication</span>
+                    <span class="virement-value ref">{{ reference }}</span>
+                </div>
+            </div>
+
+            <p style="font-size:0.78rem;color:var(--slate);margin-top:0.75rem">
+                ⚠️ La communication structurée est indispensable pour identifier
+                votre paiement. Ne la modifiez pas.
+            </p>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

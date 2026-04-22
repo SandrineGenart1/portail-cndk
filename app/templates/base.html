@@ -1,176 +1,279 @@
 <!DOCTYPE html>
+
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   
     <title>{% block title %}Portail CNDK{% endblock %}</title>
+    <!-- block title : chaque page enfant peut définir son propre titre d'onglet -->
+    <!-- Si la page enfant ne définit pas de titre, "Portail CNDK" est utilisé par défaut -->
+
+    <!-- Bootstrap 5 : framework CSS chargé depuis un CDN (pas besoin de l'installer) -->
+    <!-- Il fournit la grille, les boutons, les alertes, les utilitaires de mise en page -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons : bibliothèque d'icônes vectorielles (bi-house, bi-upload, etc.) -->
+    <!-- Utilisées dans le menu sidebar pour remplacer les émojis -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Feuille de style personnalisée : chargée APRÈS Bootstrap -->
+    <!-- L'ordre est important : nos règles écrasent Bootstrap quand nécessaire -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
     {% block extra_css %}{% endblock %}
+    <!-- block extra_css : permet à chaque page enfant d'ajouter son propre CSS -->
+    <!-- Ex : admin_nouvelle_activite.html ajoute les styles du formulaire ici -->
 </head>
 <body>
 
-<div class="layout">
+<!-- wrapper : conteneur flex principal qui place la sidebar et le contenu côte à côte -->
+<!-- display:flex dans style.css fait que sidebar + main-content s'affichent en ligne -->
+<div class="wrapper">
 
-    {# ── Sidebar ───────────────────────────────────────────── #}
+    <!-- ═══════════════════════════════════════════════════════
+         SIDEBAR — barre de navigation latérale fixe
+         Reste visible même quand on fait défiler le contenu
+         ═══════════════════════════════════════════════════════ -->
     <aside class="sidebar">
 
-        {# Brand — logo + nom école #}
-        <div class="brand">
-            <div class="brand-logo">
-                <img src="{{ url_for('static', filename='images/Logo_fd_blanc.png') }}"
-                     alt="Logo CNDK">
+        <!-- BRAND : zone logo + nom de l'application -->
+        <!-- Séparée du menu par une bordure subtle dans style.css -->
+        <div class="sidebar-brand">
+
+            <!-- Logo de l'école, chargé depuis static/images/ -->
+            <!-- url_for génère le bon chemin même si l'app est dans un sous-dossier -->
+            <div class="sidebar-brand-img">
+                <img src="{{ url_for('static', filename='images/Logo_fd_blanc.png') }}" alt="Logo CNDK">
             </div>
-            <div class="brand-text">
+
+            <!-- Nom du portail + rôle de l'utilisateur connecté -->
+            <div class="sidebar-brand-text">
                 <h1>Portail numérique du CNDK</h1>
-                <p>
-                    {% if role == 'admin' %}Administration{% else %}Espace parent{% endif %}
-                </p>
+                <!-- Affiche "Administration" ou "Espace parent" selon le rôle -->
+                <!-- La variable "role" est passée par chaque route Flask -->
+                <p>{% if role == 'admin' %}Administration{% else %}Espace parent{% endif %}</p>
             </div>
         </div>
 
-        {# Navigation selon le rôle #}
-        <nav class="menu">
+        <!-- NAVIGATION : liens du menu selon le rôle de l'utilisateur -->
+        <!-- La variable "active" passée par Flask indique la page courante -->
+        <!-- Ex : active="dashboard" met le lien Tableau de bord en surbrillance amber -->
+        <nav class="sidebar-nav">
 
+            <!-- ── Menu Administrateur (Compta) ────────────────── -->
             {% if role == 'admin' %}
-            {# ── Menu Administrateur ──────────────────────── #}
 
+            <!-- Tableau de bord : page d'accueil admin avec les statistiques -->
             <a href="{{ url_for('main.admin_dashboard') }}"
-               class="menu-link {% if active == 'dashboard' %}active{% endif %}">
-                <span class="icon">🏠</span> Tableau de bord
+               class="sidebar-link {% if active == 'dashboard' %}active{% endif %}">
+                <i class="bi bi-house-door"></i> Tableau de bord
+                <!-- bi bi-house-door : icône Bootstrap Icons, remplace l'émoji 🏠 -->
             </a>
 
-            <div class="menu-divider"></div>
-            <span class="menu-section">Élèves</span>
+            <!-- Séparateur visuel : fine ligne horizontale entre les sections -->
+            <div class="nav-divider"></div>
+            <!-- Titre de section : affiché en petit texte grisé uppercase -->
+            <div class="nav-section">Élèves</div>
 
+            <!-- Import CSV : charge la liste des élèves depuis ProEco -->
             <a href="{{ url_for('main.admin_importer_eleves') }}"
-               class="menu-link {% if active == 'import_eleves' %}active{% endif %}">
-                <span class="icon">📥</span> Importer les élèves
+               class="sidebar-link {% if active == 'import_eleves' %}active{% endif %}">
+                <i class="bi bi-upload"></i> Importer les élèves
             </a>
 
-            <div class="menu-divider"></div>
-            <span class="menu-section">Activités & Paiements</span>
+            <div class="nav-divider"></div>
+            <div class="nav-section">Activités & Paiements</div>
 
+            <!-- Liste des activités : vue globale avec taux de paiement -->
             <a href="{{ url_for('main.admin_activites') }}"
-               class="menu-link {% if active == 'activites' %}active{% endif %}">
-                <span class="icon">📋</span> Liste des activités
+               class="sidebar-link{% if active == 'activites' %}active{% endif %}">
+                <i class="bi bi-list-ul"></i> Liste des activités
             </a>
 
+            <!-- Nouvelle activité : formulaire de création avec affectation aux classes -->
             <a href="{{ url_for('main.admin_nouvelle_activite') }}"
-               class="menu-link {% if active == 'nouvelle_activite' %}active{% endif %}">
-                <span class="icon">➕</span> Nouvelle activité
+               class="sidebar-link{% if active == 'nouvelle_activite' %}active{% endif %}">
+                <i class="bi bi-plus-circle"></i> Nouvelle activité
             </a>
 
+            <!-- Suivi des paiements : liste tous les paiements, permet de valider les virements -->
             <a href="{{ url_for('main.admin_paiements') }}"
-               class="menu-link {% if active == 'paiements' %}active{% endif %}">
-                <span class="icon">💶</span> Suivi des paiements
+               class="sidebar-link {% if active == 'paiements' %}active{% endif %}">
+                <i class="bi bi-cash-coin"></i> Suivi des paiements
             </a>
 
+            <!-- Export : génère CSV de suivi ou fichiers DBF pour Bob50 -->
             <a href="{{ url_for('main.admin_export') }}"
-               class="menu-link {% if active == 'export' %}active{% endif %}">
-                <span class="icon">📤</span> Exporter les paiements
+               class="sidebar-link{% if active == 'export' %}active{% endif %}">
+                <i class="bi bi-box-arrow-up"></i> Exporter les paiements
             </a>
 
-            <div class="menu-divider"></div>
-            <span class="menu-section">Repas</span>
+            <div class="nav-divider"></div>
+            <div class="nav-section">Repas</div>
 
-            <a href="#" class="menu-link">
-                <span class="icon">🍽️</span> Calendrier des repas
+            <!-- Fonctionnalités futures : liens désactivés avec badge "Bientôt" -->
+            <!-- href="#" : lien vide, ne navigue pas -->
+            <a href="#" class="sidebar-link">
+                <i class="bi bi-calendar3"></i> Calendrier des repas
+                <!-- badge-soon : petit label grisé aligné à droite du lien -->
                 <span class="badge-soon">Bientôt</span>
             </a>
 
-            <a href="#" class="menu-link">
-                <span class="icon">💳</span> Portefeuilles élèves
+            <a href="#" class="sidebar-link">
+                <i class="bi bi-wallet2"></i> Portefeuilles élèves
                 <span class="badge-soon">Bientôt</span>
             </a>
 
-            <a href="#" class="menu-link">
-                <span class="icon">📊</span> Réservations du jour
+            <a href="#" class="sidebar-link">
+                <i class="bi bi-bar-chart"></i> Réservations du jour
                 <span class="badge-soon">Bientôt</span>
             </a>
 
-            <div class="menu-divider"></div>
+            <div class="nav-divider"></div>
 
-            <a href="{{ url_for('main.index') }}" class="menu-link">
-                <span class="icon">👨‍👩‍👧</span> Vue espace parent
+            <!-- Lien vers l'espace parent : permet à l'admin de voir ce que voit un parent -->
+            <a href="{{ url_for('main.index') }}" class="sidebar-link">
+                <i class="bi bi-people"></i> Vue espace parent
             </a>
 
+            <!-- ── Menu Parent ──────────────────────────────────── -->
             {% else %}
-            {# ── Menu Parent ──────────────────────────────── #}
 
+            <!-- Mes activités : liste les activités liées aux enfants du parent connecté -->
             <a href="{{ url_for('main.index') }}"
-               class="menu-link {% if active == 'accueil' %}active{% endif %}">
-                <span class="icon">🏠</span> Mes activités
+               class="sidebar-link {% if active == 'accueil' %}active{% endif %}">
+                <i class="bi bi-house-door"></i> Mes activités
             </a>
 
-            <div class="menu-divider"></div>
-            <span class="menu-section">Repas</span>
+            <div class="nav-divider"></div>
+            <div class="nav-section">Repas</div>
 
-            <a href="#" class="menu-link">
-                <span class="icon">🍽️</span> Réserver un repas
+            <a href="#" class="sidebar-link">
+                <i class="bi bi-calendar3"></i> Réserver un repas
                 <span class="badge-soon">Bientôt</span>
             </a>
 
-            <a href="#" class="menu-link">
-                <span class="icon">💳</span> Mon portefeuille
+            <a href="#" class="sidebar-link">
+                <i class="bi bi-wallet2"></i> Mon portefeuille
                 <span class="badge-soon">Bientôt</span>
             </a>
 
             {% endif %}
+            <!-- Fin du bloc conditionnel admin / parent -->
 
         </nav>
 
-        {# Footer sidebar : utilisateur connecté #}
+        <!-- FOOTER SIDEBAR : affiche l'utilisateur connecté et son rôle -->
         <div class="sidebar-footer">
+
+            <!-- Nom de l'utilisateur connecté, passé par la route Flask -->
+            <!-- TODO : sera remplacé par flask_login.current_user.prenom + nom -->
             {% if current_user_name %}
-            <p class="user-name">{{ current_user_name }}</p>
+            <div class="user-name">{{ current_user_name }}</div>
             {% endif %}
+
+            <!-- Badge de rôle coloré : amber pour admin, vert pour parent -->
+            <!-- La classe CSS "admin" ou "parent" vient de style.css -->
             <span class="role-badge {{ role }}">
                 {% if role == 'admin' %}Administrateur{% else %}Parent{% endif %}
             </span>
-            <p style="margin-top:0.5rem">
-                <a href="#" style="color:rgba(255,255,255,0.35);font-size:0.75rem">
-                    Se déconnecter
+
+            <!-- Lien de déconnexion -->
+            <!-- TODO : pointera vers la route Flask de déconnexion flask_login -->
+            <div style="margin-top:0.5rem">
+                <a href="#" style="color:rgba(255,255,255,0.3); font-size:0.75rem; text-decoration:none;">
+                    <i class="bi bi-box-arrow-right"></i> Se déconnecter
                 </a>
-            </p>
+            </div>
         </div>
 
     </aside>
+    <!-- Fin sidebar -->
 
-    {# ── Contenu principal ─────────────────────────────────── #}
+    <!-- ═══════════════════════════════════════════════════════
+         CONTENU PRINCIPAL — zone droite de l'écran
+         Prend tout l'espace restant grâce à flex:1 dans style.css
+         ═══════════════════════════════════════════════════════ -->
     <main class="main-content">
 
-        {# Topbar — même structure que professeurs.html #}
+        <!-- TOPBAR : barre du haut avec titre de page et boutons d'action -->
+        <!-- Chaque page enfant définit ses propres blocs eyebrow, page_title, etc. -->
         <header class="topbar">
             <div>
+                <!-- eyebrow : petit texte orange au-dessus du titre -->
+                <!-- Ex : "Administration — Activités" -->
                 <p class="eyebrow">{% block eyebrow %}Portail CNDK{% endblock %}</p>
+
+                <!-- Titre principal de la page -->
                 <h2>{% block page_title %}{% endblock %}</h2>
+
+                <!-- Sous-titre descriptif de la page -->
                 <p class="intro">{% block page_subtitle %}{% endblock %}</p>
             </div>
-            <div class="topbar-actions">
+
+            <!-- Zone boutons d'action en haut à droite -->
+            <!-- Ex : bouton "← Retour aux activités" dans admin_nouvelle_activite.html -->
+            <!-- d-flex gap-2 : classes Bootstrap pour aligner les boutons horizontalement -->
+            <div class="d-flex gap-2 align-items-center flex-shrink-0">
                 {% block topbar_actions %}{% endblock %}
             </div>
         </header>
 
-        {# Messages flash #}
+        <!-- FLASH MESSAGES : messages de succès, erreur ou info affichés après une action -->
+        <!-- get_flashed_messages() récupère les messages posés par flash() dans les routes -->
+        <!-- with_categories=true : récupère aussi la catégorie (succes, erreur, info) -->
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         <div class="flash-zone">
             {% for categorie, message in messages %}
-            <div class="message message-{{ categorie }}">{{ message }}</div>
+            <!-- alert Bootstrap : style visuel selon la catégorie du message -->
+            <!-- alert-success = vert, alert-danger = rouge, alert-info = bleu -->
+            <!-- alert-dismissible fade show : permet de fermer le message avec la croix -->
+            <div class="alert
+                {% if categorie == 'succes' %}alert-success
+                {% elif categorie == 'erreur' %}alert-danger
+                {% else %}alert-info{% endif %}
+                alert-dismissible fade show" role="alert">
+
+                <!-- Icône adaptée à la catégorie du message -->
+                <i class="bi
+                    {% if categorie == 'succes' %}bi-check-circle
+                    {% elif categorie == 'erreur' %}bi-exclamation-triangle
+                    {% else %}bi-info-circle{% endif %} me-2"></i>
+
+                {{ message }}
+
+                <!-- Bouton de fermeture Bootstrap : masque l'alerte au clic -->
+                <!-- data-bs-dismiss="alert" : attribut Bootstrap qui gère le clic -->
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
             {% endfor %}
         </div>
         {% endif %}
         {% endwith %}
 
-        {# Contenu de la page #}
+        <!-- CONTENU DE LA PAGE : chaque page enfant remplit ce bloc -->
         <div class="page-body">
             {% block content %}{% endblock %}
         </div>
 
     </main>
+    <!-- Fin contenu principal -->
+
 </div>
+<!-- Fin wrapper -->
+
+<!-- Bootstrap JS : nécessaire pour les composants interactifs -->
+<!-- bundle.min.js inclut Popper.js (tooltips, dropdowns) + Bootstrap JS -->
+<!-- Placé en bas de page pour ne pas bloquer le chargement du HTML -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 {% block extra_js %}{% endblock %}
+<!-- block extra_js : permet à chaque page enfant d'ajouter ses propres scripts -->
+<!-- Ex : le JavaScript des cases à cocher dans admin_nouvelle_activite.html -->
 
 </body>
 </html>

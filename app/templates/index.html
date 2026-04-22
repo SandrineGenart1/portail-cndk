@@ -89,7 +89,7 @@
                 <th>      → une cellule d'en-tête (table header)
                 <td>      → une cellule de données (table data)
         #}
-        <table>
+        <table class="table table-hover">
             <thead>
                 <tr>
                     <th>Élève</th>
@@ -159,15 +159,15 @@
                             activite_eleve_id=ligne.id → paramètre dans l'URL
                                               résultat : /mon-qrcode/42
 
-                        ⚠️  On utilise ligne.id et NON ligne[0].
+                          On utilise ligne.id et NON ligne[0].
                             SQLAlchemy retourne des OBJETS, pas des tuples.
                             ligne[0] était la vieille notation psycopg2.
                     #}
                     <td>
                         {% if ligne.statut != "paye" %}
                             <a href="{{ url_for('main.mon_qrcode', activite_eleve_id=ligne.id) }}"
-                               class="btn btn-primary">
-                                📱 Payer par virement
+                                class="btn btn-navy">
+                                 <i class="bi bi-phone"></i> Payer par virement
                             </a>
                         {% else %}
                             {# Classe "muted" : texte grisé, sans lien #}

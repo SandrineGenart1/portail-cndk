@@ -1,455 +1,307 @@
+/* ═══════════════════════════════════════════════════════════
+   STYLE.CSS — Portail CNDK
+   Chargé APRÈS Bootstrap 5, nos règles écrasent Bootstrap
+   quand nécessaire.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Variables globales ──────────────────────────────────── */
+/* Utilisées partout avec var(--navy), var(--amber), etc. */
 :root {
-    --sidebar-w: 290px;
-
-    --navy: #1E3A5F;
+    --navy:      #1E3A5F;
     --navy-dark: #152B47;
-    --amber: #D97706;
-    --slate: #64748B;
-    --light: #F8FAFC;
-    --white: #FFFFFF;
-    --green: #059669;
-    --red: #DC2626;
-    --border: #E2E8F0;
+    --amber:     #D97706;
+    --slate:     #64748B;
+    --light:     #F8FAFC;
+    --white:     #FFFFFF;
+    --green:     #059669;
+    --red:       #DC2626;
+    --border:    #E2E8F0;
+    --sidebar-w: 280px;
 }
 
-/* Reset global */
-*,
-*::before,
-*::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-html,
+/* ── Layout global ───────────────────────────────────────── */
 body {
-    margin: 0;
-    padding: 0;
-    min-height: 100%;
-}
-
-body {
+    background: #F1F5F9;
     font-family: 'Segoe UI', system-ui, sans-serif;
-    background: var(--light);
     color: #1E293B;
+}
+
+/* Conteneur principal : sidebar + contenu côte à côte */
+.wrapper {
+    display: flex;
     min-height: 100vh;
 }
 
-/* Layout */
-.layout {
-    display: grid;
-    grid-template-columns: var(--sidebar-w) 1fr;
-    min-height: 100vh;
-    margin: 0;
-    padding: 0;
-}
-
-/* Sidebar */
+/* ── Sidebar ─────────────────────────────────────────────── */
+/* Barre latérale fixe avec dégradé navy */
 .sidebar {
-    background: var(--navy);
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    background: linear-gradient(180deg, var(--navy) 0%, var(--navy-dark) 100%);
     display: flex;
     flex-direction: column;
     position: sticky;
     top: 0;
     height: 100vh;
     overflow-y: auto;
-    padding: 0 20px 28px;
-    margin: 0;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+    z-index: 100;
 }
 
-/* Brand */
-.brand {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-
-    margin: 0;
-    margin-left: -20px;
-    margin-right: -20px;
-    margin-bottom: 28px;
-    padding: 0 0 20px 0;
-
-    border-bottom: 1px solid rgba(255,255,255,0.10);
+/* ── Brand (logo + nom école) ────────────────────────────── */
+.sidebar-brand {
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 0.5rem;
 }
 
-.brand-logo {
-    width: 100%;
-    padding: 0;
-    margin: 0;
-    overflow: hidden;
-}
-
-.brand-logo img {
+.sidebar-brand img {
     width: 100%;
     height: auto;
-    object-fit: cover;
     display: block;
 }
 
-.brand-text {
-    padding: 14px 16px 0;
+.sidebar-brand-text {
+    padding: 0.9rem 1.25rem 1rem;
 }
 
-.brand-text h1 {
+.sidebar-brand-text h1 {
     font-size: 0.85rem;
     font-weight: 700;
-    color: var(--white);
+    color: #fff;
+    margin: 0;
     line-height: 1.3;
 }
 
-.brand-text p {
+.sidebar-brand-text p {
     font-size: 0.72rem;
-    color: rgba(255,255,255,0.5);
-    margin-top: 0.15rem;
+    color: rgba(255,255,255,0.45);
+    margin: 0.15rem 0 0;
 }
 
-/* Navigation */
-.menu {
+/* ── Navigation sidebar ──────────────────────────────────── */
+.sidebar-nav {
     flex: 1;
-    padding: 1rem 0.75rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
+    padding: 0.5rem 0.75rem;
 }
 
-.menu-section {
-    font-size: 0.65rem;
+/* Titre de section (ex : "ÉLÈVES", "ACTIVITÉS & PAIEMENTS") */
+.nav-section {
+    font-size: 0.62rem;
     font-weight: 700;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.3);
+    color: rgba(255,255,255,0.28);
     padding: 0.9rem 0.5rem 0.3rem;
 }
 
-.menu-divider {
+/* Ligne de séparation entre sections */
+.nav-divider {
     height: 1px;
-    background: rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.07);
     margin: 0.4rem 0;
 }
 
-.menu-link {
+/* Lien de navigation — nommé sidebar-link pour éviter */
+/* le conflit avec la classe .nav-link de Bootstrap */
+.sidebar-link {
     display: flex;
     align-items: center;
     gap: 0.65rem;
-    color: rgba(255,255,255,0.65);
-    text-decoration: none;
-    padding: 0.55rem 0.75rem;
-    border-radius: 7px;
+    color: rgba(255,255,255,0.62);
+    padding: 0.55rem 0.85rem;
+    border-radius: 8px;
     font-size: 0.875rem;
+    text-decoration: none;
     transition: all 0.15s;
+    margin-bottom: 0.1rem;
 }
 
-.menu-link:hover {
-    background: rgba(255,255,255,0.08);
-    color: var(--white);
+.sidebar-link:hover {
+    background: rgba(255,255,255,0.09);
+    color: #fff;
 }
 
-.menu-link.active {
+/* Lien actif : fond amber pour indiquer la page courante */
+.sidebar-link.active {
     background: var(--amber);
-    color: var(--white);
-    font-weight: 500;
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(217,119,6,0.35);
 }
 
-.menu-link .icon {
+/* Icônes Bootstrap Icons dans le menu */
+.sidebar-link .bi {
     font-size: 1rem;
     width: 20px;
     text-align: center;
     flex-shrink: 0;
 }
 
-.menu-link .badge-soon {
+/* Badge "Bientôt" pour les fonctionnalités futures */
+.badge-soon {
     margin-left: auto;
-    font-size: 0.62rem;
-    background: rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.5);
-    padding: 0.1rem 0.4rem;
+    font-size: 0.6rem;
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.4);
+    padding: 0.15rem 0.45rem;
     border-radius: 4px;
-    white-space: nowrap;
 }
 
-/* Sidebar footer */
+/* ── Footer sidebar ──────────────────────────────────────── */
 .sidebar-footer {
     padding: 1rem 1.25rem;
-    border-top: 1px solid rgba(255,255,255,0.08);
-}
-
-.sidebar-footer p {
-    font-size: 0.75rem;
-    color: rgba(255,255,255,0.3);
-    line-height: 1.5;
+    border-top: 1px solid rgba(255,255,255,0.07);
 }
 
 .sidebar-footer .user-name {
-    color: rgba(255,255,255,0.65);
-    font-weight: 500;
-    font-size: 0.82rem;
-}
-
-.sidebar-footer .role-badge {
-    display: inline-block;
-    margin-top: 0.25rem;
-    font-size: 0.68rem;
+    font-size: 0.85rem;
     font-weight: 600;
-    letter-spacing: 0.06em;
+    color: rgba(255,255,255,0.75);
+}
+
+/* Badge de rôle coloré selon admin ou parent */
+.role-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
     text-transform: uppercase;
-    padding: 0.15rem 0.5rem;
+    padding: 0.2rem 0.55rem;
     border-radius: 4px;
+    margin-top: 0.25rem;
 }
 
-.role-badge.admin {
-    background: rgba(217,119,6,0.25);
-    color: #FCD34D;
-}
+.role-badge.admin  { background: rgba(217,119,6,0.25);  color: #FCD34D; }
+.role-badge.parent { background: rgba(5,150,105,0.25);  color: #6EE7B7; }
 
-.role-badge.parent {
-    background: rgba(5,150,105,0.25);
-    color: #6EE7B7;
-}
-
-/* Main content */
+/* ── Contenu principal ───────────────────────────────────── */
+/* Prend tout l'espace restant à droite de la sidebar */
 .main-content {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
-    overflow-y: auto;
-    padding: 0;
-    margin: 0;
+    min-width: 0; /* empêche le débordement sur grands tableaux */
 }
 
-/* Topbar */
+/* ── Topbar ──────────────────────────────────────────────── */
+/* Barre du haut avec titre de page et boutons d'action */
 .topbar {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 1.25rem 2rem;
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    padding: 0 2rem 1.5rem;
-    border-bottom: 1px solid var(--border);
-    background: var(--white);
     gap: 1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
+/* Petit texte orange au-dessus du titre (ex: "Administration") */
 .topbar .eyebrow {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--amber);
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.2rem;
 }
 
 .topbar h2 {
-    font-size: 1.5rem;
+    font-size: 1.45rem;
     font-weight: 700;
     color: var(--navy);
+    margin: 0;
     line-height: 1.2;
 }
 
 .topbar .intro {
     font-size: 0.875rem;
     color: var(--slate);
-    margin-top: 0.3rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0;
 }
 
-.topbar-actions {
-    display: flex;
-    gap: 0.75rem;
-    align-items: center;
-    flex-shrink: 0;
+/* ── Flash messages ──────────────────────────────────────── */
+/* Zone des alertes Bootstrap sous la topbar */
+.flash-zone {
+    padding: 1rem 2rem 0;
 }
 
-/* Page content */
+/* ── Page body ───────────────────────────────────────────── */
 .page-body {
     padding: 1.5rem 2rem;
     flex: 1;
 }
 
-/* Flash messages */
-.flash-zone {
-    padding: 0 2rem;
-    margin-top: 1rem;
-}
-
-.message {
-    padding: 0.8rem 1.2rem;
-    border-radius: 8px;
-    margin-bottom: 0.75rem;
-    font-size: 0.875rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.message-succes {
-    background: #ECFDF5;
-    color: #065F46;
-    border-left: 3px solid var(--green);
-}
-
-.message-erreur {
-    background: #FEF2F2;
-    color: #991B1B;
-    border-left: 3px solid var(--red);
-}
-
-.message-info {
-    background: #EFF6FF;
-    color: #1E40AF;
-    border-left: 3px solid #3B82F6;
-}
-
-/* Buttons */
-.btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.55rem 1.1rem;
-    border-radius: 7px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    text-decoration: none;
-    cursor: pointer;
+/* ── Cards Bootstrap (surcharge) ────────────────────────── */
+/* On retire la bordure par défaut et on ajoute une ombre */
+.card {
     border: none;
-    transition: all 0.15s;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    margin-bottom: 1.5rem;
 }
 
-.btn-primary {
+.card-body {
+    padding: 1.5rem;
+}
+
+/* ── Boutons personnalisés ───────────────────────────────── */
+/* Utilisés en complément des boutons Bootstrap */
+.btn-navy {
     background: var(--navy);
-    color: var(--white);
+    color: #fff;
+    border: none;
 }
-
-.btn-primary:hover {
+.btn-navy:hover {
     background: var(--navy-dark);
+    color: #fff;
 }
 
 .btn-amber {
     background: var(--amber);
-    color: var(--white);
+    color: #fff;
+    border: none;
 }
-
 .btn-amber:hover {
     background: #B45309;
+    color: #fff;
 }
 
-.btn-light {
-    background: var(--light);
-    color: var(--navy);
-    border: 1px solid var(--border);
-}
-
-.btn-light:hover {
-    background: var(--border);
-}
-
-.btn-payer {
-    background: var(--navy);
-    color: var(--white);
-}
-
-.btn-payer:hover {
-    background: var(--navy-dark);
-}
-
-.btn-link {
-    color: var(--navy);
-    text-decoration: underline;
-    font-size: 0.875rem;
-}
-
-.btn-admin {
-    display: inline-block;
-    padding: 8px 14px;
-    background-color: #198754;
-    color: white;
-    text-decoration: none;
-    border: none;
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.btn-admin:hover {
-    background-color: #157347;
-}
-
-/* Cards / tables */
-.card {
-    background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th {
-    text-align: left;
-    padding: 0.65rem 1rem;
-    font-size: 0.78rem;
-    font-weight: 600;
+/* ── Tables Bootstrap (surcharge) ───────────────────────── */
+.table th {
+    font-size: 0.75rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.07em;
     color: var(--slate);
     border-bottom: 2px solid var(--border);
+    padding: 0.65rem 1rem;
 }
 
-td {
+.table td {
     padding: 0.75rem 1rem;
     font-size: 0.875rem;
-    border-bottom: 1px solid #F1F5F9;
+    vertical-align: middle;
+    border-color: #F1F5F9;
 }
 
-tr:last-child td {
-    border-bottom: none;
-}
-
-tr:hover td {
+.table tbody tr:hover td {
     background: #F8FAFC;
 }
 
-.badge {
-    display: inline-block;
-    padding: 0.2rem 0.6rem;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-.badge-success {
-    background: #ECFDF5;
-    color: #065F46;
-}
-
-.badge-warning {
-    background: #FFFBEB;
-    color: #92400E;
-}
-
-.muted {
+/* ── Section label ───────────────────────────────────────── */
+/* Petit titre de section en uppercase (ex: "Vue d'ensemble") */
+.section-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     color: var(--slate);
-    font-size: 0.82rem;
+    margin: 0 0 0.9rem;
 }
 
-/* Progress */
-.progress-bar-bg {
-    background: #E2E8F0;
-    border-radius: 4px;
-    height: 6px;
-    width: 100px;
-    display: inline-block;
-    vertical-align: middle;
-}
-
-.progress-bar-fill {
-    background: var(--green);
-    border-radius: 4px;
-    height: 100%;
-}
-
-/* Stats */
+/* ── Stats cards (dashboard) ─────────────────────────────── */
 .stats-row {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -462,6 +314,7 @@ tr:hover td {
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 1.2rem 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 
 .stat-label {
@@ -486,7 +339,7 @@ tr:hover td {
     margin-top: 0.2rem;
 }
 
-/* Tiles */
+/* ── Tiles (raccourcis dashboard) ────────────────────────── */
 .tiles-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -508,12 +361,11 @@ tr:hover td {
     overflow: hidden;
 }
 
+/* Barre colorée en haut de la tile au survol */
 .tile::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     height: 3px;
     background: var(--tile-color, var(--navy));
     transform: scaleX(0);
@@ -527,9 +379,7 @@ tr:hover td {
     transform: translateY(-2px);
 }
 
-.tile:hover::before {
-    transform: scaleX(1);
-}
+.tile:hover::before { transform: scaleX(1); }
 
 .tile-icon {
     font-size: 1.6rem;
@@ -561,29 +411,15 @@ tr:hover td {
     font-weight: 500;
 }
 
+/* Couleurs des tiles selon le thème */
 .tile-navy   { --tile-color: #1E3A5F; --tile-bg: #EFF6FF; }
 .tile-green  { --tile-color: #059669; --tile-bg: #ECFDF5; }
 .tile-amber  { --tile-color: #D97706; --tile-bg: #FFFBEB; }
 .tile-purple { --tile-color: #7C3AED; --tile-bg: #F5F3FF; }
 
-.tile-soon {
-    opacity: 0.6;
-    cursor: default;
-}
-
-.tile-soon:hover {
-    transform: none;
-    box-shadow: none;
-}
-
-.section-label {
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--slate);
-    margin: 0 0 0.9rem;
-}
+/* Tile désactivée (fonctionnalité future) */
+.tile-soon { opacity: 0.6; cursor: default; }
+.tile-soon:hover { transform: none; box-shadow: none; }
 
 /* ── Page Export ─────────────────────────────────────────── */
 .export-layout {
@@ -595,38 +431,14 @@ tr:hover td {
 @media (max-width: 900px) {
     .export-layout { grid-template-columns: 1fr; }
 }
-.form-section { margin-bottom: 1.4rem; }
-.form-section label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 0.4rem;
-    color: var(--navy);
-    font-size: 0.9rem;
-}
-.form-section select,
-.form-section input[type="date"] {
-    width: 100%;
-    padding: 0.55rem 0.8rem;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    font-size: 0.9rem;
-    font-family: inherit;
-    background: var(--white);
-    color: var(--navy);
-    box-sizing: border-box;
-}
-.form-section select:focus,
-.form-section input[type="date"]:focus {
-    outline: none;
-    border-color: var(--navy);
-    box-shadow: 0 0 0 3px rgba(30,58,95,0.1);
-}
+
 .preview-card {
     background: var(--white);
     border: 1px solid var(--border);
     border-radius: 10px;
     overflow: hidden;
 }
+
 .preview-header {
     background: var(--light);
     border-bottom: 1px solid var(--border);
@@ -635,7 +447,9 @@ tr:hover td {
     align-items: center;
     justify-content: space-between;
 }
+
 .preview-header h3 { font-size: 0.9rem; font-weight: 600; color: var(--navy); margin: 0; }
+
 .preview-count {
     font-size: 0.8rem;
     color: var(--slate);
@@ -645,6 +459,7 @@ tr:hover td {
     padding: 0.2rem 0.7rem;
     font-weight: 600;
 }
+
 .preview-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
 .preview-table th {
     text-align: left;
@@ -652,7 +467,6 @@ tr:hover td {
     font-size: 0.72rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
     color: var(--slate);
     border-bottom: 1px solid var(--border);
     background: var(--light);
@@ -661,6 +475,7 @@ tr:hover td {
 .preview-table tr:last-child td { border-bottom: none; }
 .preview-table tr:hover td { background: var(--light); }
 .preview-empty { padding: 2rem; text-align: center; color: var(--slate); font-size: 0.875rem; }
+
 .csv-columns {
     background: var(--light);
     border: 1px solid var(--border);
@@ -678,6 +493,7 @@ tr:hover td {
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
 }
+
 .btn-export {
     background: var(--navy);
     color: var(--white);
@@ -695,6 +511,7 @@ tr:hover td {
 }
 .btn-export:hover { background: var(--navy-dark); }
 .btn-export:disabled { background: var(--slate); cursor: not-allowed; }
+
 .bob50-card {
     background: var(--white);
     border: 1px solid var(--border);
@@ -722,6 +539,7 @@ tr:hover td {
     line-height: 1.6;
 }
 .bob50-info strong { display: block; margin-bottom: 0.3rem; color: var(--navy); }
+
 .btn-bob50 {
     background: var(--amber);
     color: var(--white);
@@ -739,7 +557,7 @@ tr:hover td {
 }
 .btn-bob50:hover { background: var(--navy-dark); }
 
-/* ── Page Import élèves ───────────────────────────────────── */
+/* ── Page Import élèves ──────────────────────────────────── */
 .import-zone {
     border: 2px dashed var(--border);
     border-radius: 10px;
@@ -763,6 +581,7 @@ tr:hover td {
 }
 .import-zone .hint { font-size: 0.85rem; color: var(--slate); margin-top: 0.5rem; }
 .fichier-selectionne { margin-top: 1rem; font-size: 0.9rem; color: var(--green); font-weight: 500; }
+
 .format-box {
     background: var(--light);
     border: 1px solid var(--border);
@@ -788,6 +607,7 @@ tr:hover td {
     color: var(--slate);
     line-height: 1.8;
 }
+
 .warning-box {
     background: var(--light);
     border: 1px solid var(--amber);
@@ -809,6 +629,7 @@ tr:hover td {
 @media (max-width: 768px) {
     .paiement-layout { grid-template-columns: 1fr; }
 }
+
 .qr-card {
     background: var(--white);
     border: 1px solid var(--border);
@@ -872,6 +693,7 @@ tr:hover td {
     transition: all 0.15s;
 }
 .btn-download:hover { background: var(--border); }
+
 .instructions-card {
     background: var(--white);
     border: 1px solid var(--border);
@@ -907,19 +729,11 @@ tr:hover td {
     flex-shrink: 0;
     margin-top: 0.1rem;
 }
-.step-text strong {
-    display: block;
-    font-size: 0.9rem;
-    color: var(--navy);
-    margin-bottom: 0.2rem;
-}
-.step-text p {
-    font-size: 0.82rem;
-    color: var(--slate);
-    line-height: 1.5;
-    margin: 0;
-}
+.step-text strong { display: block; font-size: 0.9rem; color: var(--navy); margin-bottom: 0.2rem; }
+.step-text p { font-size: 0.82rem; color: var(--slate); line-height: 1.5; margin: 0; }
+
 .divider { height: 1px; background: var(--border); margin: 1.25rem 0; }
+
 .virement-data {
     background: var(--light);
     border: 1px solid var(--border);
@@ -936,21 +750,10 @@ tr:hover td {
     gap: 1rem;
 }
 .virement-row:last-child { border-bottom: none; }
-.virement-label {
-    color: var(--slate);
-    font-weight: 500;
-    flex-shrink: 0;
-}
-.virement-value {
-    color: var(--navy);
-    font-weight: 600;
-    text-align: right;
-    font-family: 'Courier New', monospace;
-}
-.virement-value.ref {
-    font-size: 1rem;
-    color: var(--amber);
-}
+.virement-label { color: var(--slate); font-weight: 500; flex-shrink: 0; }
+.virement-value { color: var(--navy); font-weight: 600; text-align: right; font-family: 'Courier New', monospace; }
+.virement-value.ref { font-size: 1rem; color: var(--amber); }
+
 .statut-banner {
     background: #FFFBEB;
     border: 1px solid #FCD34D;
@@ -963,7 +766,27 @@ tr:hover td {
     align-items: center;
     gap: 0.5rem;
 }
+
 .date-limite {
     font-weight: 700;
     color: var(--red);
+}
+
+/* ── Badges statut paiement ──────────────────────────────── */
+.badge-success { background: #ECFDF5; color: #065F46; }
+.badge-warning { background: #FFFBEB; color: #92400E; }
+
+/* ── Progress bar ────────────────────────────────────────── */
+.progress-bar-bg {
+    background: #E2E8F0;
+    border-radius: 4px;
+    height: 6px;
+    width: 100px;
+    display: inline-block;
+    vertical-align: middle;
+}
+.progress-bar-fill {
+    background: var(--green);
+    border-radius: 4px;
+    height: 100%;
 }

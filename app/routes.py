@@ -11,7 +11,7 @@ from sqlalchemy import func, case
 
 from app.extensions import db
 from app.models import (
-    ParentEleve, Eleve, Activite, ActiviteEleve, PaiementActivite, MouvementPortefeuille
+    ParentEleve, Eleve, Activite, ActiviteEleve, PaiementActivite, MouvementPortefeuille,TypeRepas, CongeRepas, ReservationRepas
 )
 from app.qr_service import generer_qr_code_base64, generer_qr_code_png
 
@@ -953,3 +953,342 @@ def admin_portefeuille_historique(eleve_id):
         active="portefeuille",
         current_user_name="Administrateur (test)"
     )
+
+
+# ─────────────────────────────────────────────────────────────
+# CALENDRIER REPAS — ADMIN
+# ─────────────────────────────────────────────────────────────
+
+@main.route("/admin/repas/calendrier", methods=["GET", "POST"])
+def admin_calendrier_repas():
+    """
+    Page principale du calendrier repas.
+    Affiche les types de repas et les congés encodés.
+    Tous les lundi, mardi, jeudi, vendredi sont ouverts par défaut.
+    Seuls les congés sont encodés ici.
+    """
+    from datetime import date
+
+    types_repas = (
+        TypeRepas.query
+        .order_by(TypeRepas.actif.desc(), TypeRepas.nom)
+        .all()
+    )
+
+    # Récupère les congés futurs triés par date
+    conges = (
+        CongeRepas.query
+        .filter(CongeRepas.date_fin >= date.today())
+        .order_by(CongeRepas.date_debut)
+        .all()
+    )
+
+    return render_template(
+        "admin_calendrier_repas.html",
+        types_repas=types_repas,
+        conges=conges,
+        role="admin",
+        active="calendrier_repas",
+        current_user_name="Administrateur (test)"
+    )
+
+
+@main.route("/admin/repas/type/ajouter", methods=["POST"])
+def admin_ajouter_type_repas():
+    """
+    Ajoute un nouveau type de repas (ex: Repas chaud, Sandwich thon).
+    """
+    nom         = request.form.get("nom", "").strip()
+    description = request.form.get("description", "").strip() or None
+    prix_str    = request.form.get("prix", "").strip()
+    categorie   = request.form.get("categorie", "sandwich").strip()
+
+    erreurs = []
+    if not nom:
+        erreurs.append("Le nom est obligatoire.")
+    if not prix_str:
+        erreurs.append("Le prix est obligatoire.")
+    else:
+        try:
+            prix = float(prix_str)
+            if prix <= 0:
+                erreurs.append("Le prix doit être positif.")
+        except ValueError:
+            erreurs.append("Le prix doit être un nombre.")
+
+    if erreurs:
+        for e in erreurs:
+            flash(e, "erreur")
+        return redirect(url_for("main.admin_calendrier_repas"))
+
+    type_repas = TypeRepas(
+        nom=nom,
+        description=description,
+        prix=prix,
+        categorie=categorie,
+        actif=True
+    )
+    db.session.add(type_repas)
+    db.session.commit()
+
+    flash(f"Type de repas « {nom} » ajouté avec succès.", "succes")
+    return redirect(url_for("main.admin_calendrier_repas"))
+
+
+@main.route("/admin/repas/type/toggle/<int:type_id>", methods=["POST"])
+def admin_toggle_type_repas(type_id):
+    """
+    Active ou désactive un type de repas.
+    Un type désactivé n'apparaît plus dans les tuiles de réservation parent.
+    """
+    type_repas = TypeRepas.query.get_or_404(type_id)
+    type_repas.actif = not type_repas.actif
+    db.session.commit()
+
+    statut = "activé" if type_repas.actif else "désactivé"
+    flash(f"Type de repas « {type_repas.nom} » {statut}.", "succes")
+    return redirect(url_for("main.admin_calendrier_repas"))
+
+@main.route("/admin/repas/type/modifier/<int:type_id>", methods=["POST"])
+def admin_modifier_type_repas(type_id):
+    """
+    Modifie le nom, la catégorie et le prix d'un type de repas.
+    Le nouveau prix s'applique uniquement aux futures réservations.
+    Les réservations existantes conservent leur montant d'origine.
+    """
+    type_repas = TypeRepas.query.get_or_404(type_id)
+
+    nom_str   = request.form.get("nom", "").strip()
+    prix_str  = request.form.get("prix", "").strip()
+    categorie = request.form.get("categorie", "sandwich").strip()
+
+    erreurs = []
+    if not nom_str:
+        erreurs.append("Le nom est obligatoire.")
+    if not prix_str:
+        erreurs.append("Le prix est obligatoire.")
+    else:
+        try:
+            nouveau_prix = float(prix_str)
+            if nouveau_prix <= 0:
+                erreurs.append("Le prix doit être positif.")
+        except ValueError:
+            erreurs.append("Prix invalide.")
+
+    if erreurs:
+        for e in erreurs:
+            flash(e, "erreur")
+        return redirect(url_for("main.admin_calendrier_repas"))
+
+    # Trace le changement de prix si modifié
+    ancien_prix = float(type_repas.prix)
+    type_repas.nom       = nom_str
+    type_repas.prix      = nouveau_prix
+    type_repas.categorie = categorie
+    type_repas.updated_at = datetime.now()
+    db.session.commit()
+
+    if ancien_prix != nouveau_prix:
+        flash(
+            f"« {nom_str} » mis à jour — prix : "
+            f"{ancien_prix:.2f}€ → {nouveau_prix:.2f}€.",
+            "succes"
+        )
+    else:
+        flash(f"« {nom_str} » mis à jour.", "succes")
+
+    return redirect(url_for("main.admin_calendrier_repas"))
+
+@main.route("/admin/repas/type/modifier-prix/<int:type_id>", methods=["POST"])
+def admin_modifier_prix_repas(type_id):
+    """
+    Modifie le prix d'un type de repas.
+    Le nouveau prix s'applique uniquement aux futures réservations.
+    Les réservations existantes conservent leur montant d'origine.
+    """
+    type_repas = TypeRepas.query.get_or_404(type_id)
+    prix_str   = request.form.get("nouveau_prix", "").strip()
+
+    try:
+        nouveau_prix = float(prix_str)
+        if nouveau_prix <= 0:
+            flash("Le prix doit être positif.", "erreur")
+            return redirect(url_for("main.admin_calendrier_repas"))
+    except ValueError:
+        flash("Prix invalide.", "erreur")
+        return redirect(url_for("main.admin_calendrier_repas"))
+
+    ancien_prix         = float(type_repas.prix)
+    type_repas.prix     = nouveau_prix
+    type_repas.updated_at = datetime.now()
+    db.session.commit()
+
+    flash(
+        f"Prix de « {type_repas.nom} » modifié : "
+        f"{ancien_prix:.2f}€ → {nouveau_prix:.2f}€. "
+        f"Les réservations existantes ne sont pas affectées.",
+        "succes"
+    )
+    return redirect(url_for("main.admin_calendrier_repas"))
+
+
+@main.route("/admin/repas/conge/ajouter", methods=["POST"])
+def admin_ajouter_conge():
+    """
+    Ajoute une période de congé — les repas ne sont pas disponibles
+    pendant cette période.
+    Ex : Toussaint du 01/11 au 09/11, Noël du 23/12 au 05/01...
+    """
+    from datetime import date
+
+    date_debut_str = request.form.get("date_debut", "").strip()
+    date_fin_str   = request.form.get("date_fin", "").strip()
+    motif          = request.form.get("motif", "").strip() or None
+
+    if not date_debut_str or not date_fin_str:
+        flash("Les deux dates sont obligatoires.", "erreur")
+        return redirect(url_for("main.admin_calendrier_repas"))
+
+    try:
+        date_debut = date.fromisoformat(date_debut_str)
+        date_fin   = date.fromisoformat(date_fin_str)
+    except ValueError:
+        flash("Format de date invalide.", "erreur")
+        return redirect(url_for("main.admin_calendrier_repas"))
+
+    if date_fin < date_debut:
+        flash("La date de fin doit être après la date de début.", "erreur")
+        return redirect(url_for("main.admin_calendrier_repas"))
+
+    conge = CongeRepas(
+        date_debut=date_debut,
+        date_fin=date_fin,
+        motif=motif
+    )
+    db.session.add(conge)
+    db.session.commit()
+
+    flash(
+        f"Congé « {motif or 'sans motif'} » ajouté "
+        f"du {date_debut.strftime('%d/%m/%Y')} "
+        f"au {date_fin.strftime('%d/%m/%Y')}.",
+        "succes"
+    )
+    return redirect(url_for("main.admin_calendrier_repas"))
+
+
+@main.route("/admin/repas/conge/supprimer/<int:conge_id>", methods=["POST"])
+def admin_supprimer_conge(conge_id):
+    """
+    Supprime un congé — les jours redeviennent disponibles
+    pour les réservations.
+    """
+    conge = CongeRepas.query.get_or_404(conge_id)
+    motif = conge.motif or "sans motif"
+    db.session.delete(conge)
+    db.session.commit()
+
+    flash(f"Congé « {motif} » supprimé.", "succes")
+    return redirect(url_for("main.admin_calendrier_repas"))
+
+@main.route("/admin/repas/conge/importer", methods=["POST"])
+def admin_importer_conges_csv():
+    """
+    Import CSV des congés scolaires.
+    Format attendu : motif,date_debut,date_fin
+    Les dates doivent être au format YYYY-MM-DD (ex: 2025-11-01).
+    Les congés déjà existants (même date_debut) ne sont pas dupliqués.
+    """
+    from datetime import date
+
+    fichier = request.files.get("fichier_csv")
+
+    if not fichier or fichier.filename == "":
+        flash("Aucun fichier sélectionné.", "erreur")
+        return redirect(url_for("main.admin_calendrier_repas"))
+
+    if not fichier.filename.lower().endswith(".csv"):
+        flash("Le fichier doit être au format .csv", "erreur")
+        return redirect(url_for("main.admin_calendrier_repas"))
+
+    try:
+        contenu = fichier.read().decode("utf-8-sig")
+        lecteur = csv.DictReader(io.StringIO(contenu))
+
+        # Vérifie que les colonnes requises sont présentes
+        colonnes_requises = {"date_debut", "date_fin"}
+        if not colonnes_requises.issubset(set(lecteur.fieldnames or [])):
+            flash(
+                "Colonnes manquantes. Format attendu : motif,date_debut,date_fin",
+                "erreur"
+            )
+            return redirect(url_for("main.admin_calendrier_repas"))
+
+        # Récupère les dates_debut déjà existantes pour éviter les doublons
+        dates_existantes = {
+            c.date_debut for c in CongeRepas.query.all()
+        }
+
+        nb_ajoutes  = 0
+        nb_ignores  = 0
+        nb_erreurs  = 0
+
+        for i, ligne in enumerate(lecteur, start=2):
+            date_debut_str = ligne.get("date_debut", "").strip()
+            date_fin_str   = ligne.get("date_fin", "").strip()
+            motif          = ligne.get("motif", "").strip() or None
+
+            if not date_debut_str or not date_fin_str:
+                nb_erreurs += 1
+                continue
+
+            try:
+                date_debut = date.fromisoformat(date_debut_str)
+                date_fin   = date.fromisoformat(date_fin_str)
+            except ValueError:
+                flash(
+                    f"Ligne {i} ignorée — format de date invalide : "
+                    f"{date_debut_str} / {date_fin_str}. "
+                    "Utilisez le format YYYY-MM-DD.",
+                    "erreur"
+                )
+                nb_erreurs += 1
+                continue
+
+            if date_fin < date_debut:
+                nb_erreurs += 1
+                continue
+
+            # Ignore si ce congé existe déjà
+            if date_debut in dates_existantes:
+                nb_ignores += 1
+                continue
+
+            conge = CongeRepas(
+                date_debut=date_debut,
+                date_fin=date_fin,
+                motif=motif
+            )
+            db.session.add(conge)
+            dates_existantes.add(date_debut)
+            nb_ajoutes += 1
+
+        db.session.commit()
+
+    except UnicodeDecodeError:
+        flash("Erreur d'encodage. Enregistrez le fichier en UTF-8.", "erreur")
+        return redirect(url_for("main.admin_calendrier_repas"))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erreur lors de l'import : {str(e)}", "erreur")
+        return redirect(url_for("main.admin_calendrier_repas"))
+
+    if nb_ajoutes > 0:
+        flash(f"{nb_ajoutes} congé(s) importé(s) avec succès.", "succes")
+    if nb_ignores > 0:
+        flash(f"{nb_ignores} congé(s) ignoré(s) — déjà présents.", "info")
+    if nb_erreurs > 0:
+        flash(f"{nb_erreurs} ligne(s) ignorée(s) — erreur de format.", "erreur")
+
+    return redirect(url_for("main.admin_calendrier_repas"))

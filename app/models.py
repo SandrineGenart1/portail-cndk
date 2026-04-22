@@ -263,6 +263,16 @@ class TypeRepas(db.Model):
     # actif : permet de désactiver un type sans le supprimer
     # False = n'apparaît plus dans les tuiles de réservation
     actif       = db.Column(db.Boolean, nullable=False, default=True)
+    # updated_at : date de dernière modification du prix
+    # Permet de tracer les augmentations de prix
+    updated_at = db.Column(db.DateTime, nullable=True,
+                           onupdate=db.func.now())
+
+    # categorie : "chaud" ou "sandwich"
+    # Permet de grouper les listes de production côté admin
+    # "chaud"    → liste unique "Repas chaud du jour"
+    # "sandwich" → une liste par type de sandwich
+    categorie = db.Column(db.String(20), nullable=False, default="sandwich")
 
     # Relation : liste des réservations liées à ce type de repas
     reservations = db.relationship(
@@ -275,46 +285,43 @@ class TypeRepas(db.Model):
         return f"<TypeRepas {self.nom} ({self.prix}€)>"
 
 
-# ── JourRepas ────────────────────────────────────────────────
-class JourRepas(db.Model):
+# ── CongeRepas ───────────────────────────────────────────────
+class CongeRepas(db.Model):
     """
-    Représente un jour du calendrier où les repas sont disponibles.
-    Créé par l'admin pour ouvrir ou fermer les réservations sur une date donnée.
-    Ex : 2025-09-15 → ouvert, 2025-09-16 → fermé (jour sans repas)
+    Jours où les repas ne sont PAS disponibles.
+    Tous les lundi, mardi, jeudi, vendredi sont ouverts par défaut.
+    Seuls les congés sont encodés ici.
+    Ex : Toussaint, Noël, Carnaval, Pâques, ponts...
     """
-    __tablename__ = "jours_repas"
+    __tablename__ = "conges_repas"
 
-    id     = db.Column(db.Integer, primary_key=True)
-    # date : la date du jour de repas — unique (un seul enregistrement par jour)
-    date   = db.Column(db.Date, nullable=False, unique=True)
-    # ouvert : True = réservations acceptées, False = jour fermé
-    ouvert = db.Column(db.Boolean, nullable=False, default=True)
-
-    # Relation : liste des réservations faites pour ce jour
-    reservations = db.relationship(
-        "ReservationRepas",
-        back_populates="jour_repas",
-        cascade="all, delete-orphan"
-    )
+    id         = db.Column(db.Integer, primary_key=True)
+    date_debut = db.Column(db.Date, nullable=False)
+    date_fin   = db.Column(db.Date, nullable=False)
+    # Motif affiché dans le calendrier (ex: "Toussaint", "Noël")
+    motif      = db.Column(db.String(100))
+    created_at = db.Column(db.DateTime, nullable=False,
+                           server_default=db.func.now())
 
     def __repr__(self):
-        return f"<JourRepas {self.date} {'ouvert' if self.ouvert else 'fermé'}>"
+        return f"<CongeRepas {self.motif} {self.date_debut}→{self.date_fin}>"
+
 
 
 # ── ReservationRepas ─────────────────────────────────────────
 class ReservationRepas(db.Model):
     """
-    Enregistre la réservation d'un repas par un élève pour un jour donné.
-    Le montant est déduit du solde_portefeuille de l'élève au moment
-    de la réservation. Un mouvement de portefeuille est créé en parallèle.
+    Réservation d'un repas par un élève pour une date donnée.
+    Le montant est déduit du solde_portefeuille au moment de la réservation.
+    Annulation possible jusqu'à 8h00 le matin même → remboursement automatique.
     """
     __tablename__ = "reservations_repas"
 
-    # Contrainte d'unicité : un élève ne peut réserver qu'un seul repas par jour
+    # Un élève ne peut réserver qu'un seul repas par jour
     __table_args__ = (
         db.UniqueConstraint(
-            "eleve_id", "jour_repas_id",
-            name="uq_reservation_eleve_jour"
+            "eleve_id", "date_repas",
+            name="uq_reservation_eleve_date"
         ),
     )
 
@@ -332,30 +339,26 @@ class ReservationRepas(db.Model):
         nullable=False
     )
 
-    jour_repas_id = db.Column(
-        db.Integer,
-        db.ForeignKey("jours_repas.id", ondelete="CASCADE"),
-        nullable=False
-    )
+    # date_repas : date du repas réservé (remplace jour_repas_id)
+    # Plus simple — pas besoin d'une table JourRepas
+    date_repas = db.Column(db.Date, nullable=False)
 
     # montant : copie du prix au moment de la réservation
-    # Permet de garder l'historique même si le prix change ensuite
+    # Conserve l'historique même si le prix change ensuite
     montant    = db.Column(db.Numeric(8, 2), nullable=False)
 
-    # statut : "confirme" (défaut) ou "annule"
-    # Une annulation recrédite le portefeuille via un nouveau mouvement
+    # statut : "confirme" ou "annule"
     statut     = db.Column(db.String(20), nullable=False, default="confirme")
 
-    created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
+    created_at = db.Column(db.DateTime, nullable=False,
+                           server_default=db.func.now())
 
     # Relations SQLAlchemy
-    eleve      = db.relationship("Eleve",      back_populates="reservations_repas")
-    type_repas = db.relationship("TypeRepas",  back_populates="reservations")
-    jour_repas = db.relationship("JourRepas",  back_populates="reservations")
+    eleve      = db.relationship("Eleve",     back_populates="reservations_repas")
+    type_repas = db.relationship("TypeRepas", back_populates="reservations")
 
     def __repr__(self):
-        return f"<ReservationRepas eleve={self.eleve_id} jour={self.jour_repas_id} statut={self.statut}>"
-
+        return f"<ReservationRepas eleve={self.eleve_id} date={self.date_repas} statut={self.statut}>"
 
 # ── MouvementPortefeuille ────────────────────────────────────
 class MouvementPortefeuille(db.Model):

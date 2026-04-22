@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+{# Hérite de base.html : sidebar, topbar, flash messages inclus automatiquement #}
+
+{% block title %}Calendrier repas — Admin CNDK{% endblock %}
+{% block eyebrow %}Administration — Repas{% endblock %}
+{% block page_title %}Calendrier des repas{% endblock %}
+{% block page_subtitle %}Gérez les types de repas et les périodes de congé.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('main.admin_dashboard') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Tableau de bord
+</a>
+{% endblock %}
+
+{% block content %}
+
+{# ═══════════════════════════════════════════════════════════
+   SECTION 1 — TABLEAU DES TYPES DE REPAS (pleine largeur)
+   Permet de modifier le nom, la catégorie et le prix inline.
+   ═══════════════════════════════════════════════════════════ #}
+<div class="card mb-4">
+    <div class="card-body p-0">
+
+        {# En-tête avec titre + bouton ajouter #}
+        <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+            <h3 class="fw-bold mb-0" style="font-size:1rem;color:var(--navy)">
+                <i class="bi bi-list-ul"></i> Types de repas
+                <span class="badge bg-secondary ms-2">{{ types_repas|length }}</span>
+            </h3>
+            {# Bouton qui affiche/masque le formulaire d'ajout via Bootstrap collapse #}
+            <button class="btn btn-navy btn-sm"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#formAjouter">
+                <i class="bi bi-plus-circle"></i> Ajouter
+            </button>
+        </div>
+
+        {# Formulaire d'ajout — masqué par défaut, affiché au clic sur "Ajouter" #}
+        {# collapse : classe Bootstrap pour afficher/masquer avec animation #}
+        <div class="collapse" id="formAjouter">
+            <div class="p-3 border-bottom bg-light">
+                <form action="{{ url_for('main.admin_ajouter_type_repas') }}" method="POST">
+                    <div class="row g-3 align-items-end">
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold small" style="color:var(--navy)">
+                                Nom *
+                            </label>
+                            <input type="text" name="nom" class="form-control"
+                                   placeholder="Ex : Sandwich thon…" required>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold small" style="color:var(--navy)">
+                                Catégorie *
+                            </label>
+                            <select name="categorie" class="form-select">
+                                <option value="sandwich">🥪 Sandwich</option>
+                                <option value="chaud">🍽️ Repas chaud</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold small" style="color:var(--navy)">
+                                Description <span class="fw-normal text-muted">(optionnel)</span>
+                            </label>
+                            <input type="text" name="description" class="form-control"
+                                   placeholder="Ex : Avec frites…">
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold small" style="color:var(--navy)">
+                                Prix (€) *
+                            </label>
+                            <input type="number" name="prix" class="form-control"
+                                   step="0.01" min="0.01"
+                                   placeholder="Ex : 3.50" required>
+                        </div>
+
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-navy w-100">
+                                <i class="bi bi-check"></i> Confirmer
+                            </button>
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {# Tableau des types existants avec édition inline #}
+        {% if types_repas %}
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th style="width:30%">Nom</th>
+                    <th style="width:20%">Catégorie</th>
+                    <th style="width:15%">Prix</th>
+                    <th style="width:10%">Statut</th>
+                    <th style="width:25%">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in types_repas %}
+                <tr>
+                    {# Champ nom éditable directement dans le tableau #}
+                    <td>
+                        <input type="text" id="nom_{{ t.id }}"
+                               value="{{ t.nom }}"
+                               class="form-control form-control-sm">
+                    </td>
+
+                    {# Sélecteur de catégorie #}
+                    <td>
+                        <select id="categorie_{{ t.id }}" class="form-select form-select-sm">
+                            <option value="chaud"
+                                {% if t.categorie == 'chaud' %}selected{% endif %}>
+                                🍽️ Repas chaud
+                            </option>
+                            <option value="sandwich"
+                                {% if t.categorie == 'sandwich' %}selected{% endif %}>
+                                🥪 Sandwich
+                            </option>
+                        </select>
+                    </td>
+
+                    {# Champ prix éditable #}
+                    <td>
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="prix_{{ t.id }}"
+                                   value="{{ '%.2f'|format(t.prix|float) }}"
+                                   class="form-control form-control-sm"
+                                   step="0.01" min="0.01">
+                            <span class="input-group-text">€</span>
+                        </div>
+                    </td>
+
+                    {# Badge statut coloré #}
+                    <td>
+                        {% if t.actif %}
+                            <span class="badge badge-success">Actif</span>
+                        {% else %}
+                            <span class="badge badge-warning">Inactif</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {# Formulaire caché — soumis par JavaScript via sauvegarder() #}
+                        {# Les champs hidden reçoivent les valeurs des inputs visibles #}
+                        <form action="{{ url_for('main.admin_modifier_type_repas', type_id=t.id) }}"
+                              method="POST" id="form_modifier_{{ t.id }}">
+                            <input type="hidden" name="nom"       id="h_nom_{{ t.id }}">
+                            <input type="hidden" name="prix"      id="h_prix_{{ t.id }}">
+                            <input type="hidden" name="categorie" id="h_categorie_{{ t.id }}">
+                        </form>
+
+                        {# Bouton sauvegarder — déclenche sauvegarder() en JS #}
+                        <button type="button"
+                                class="btn btn-navy btn-sm me-1"
+                                onclick="sauvegarder({{ t.id }})">
+                            <i class="bi bi-check"></i> Sauvegarder
+                        </button>
+
+                        {# Bouton activer/désactiver #}
+                        <form action="{{ url_for('main.admin_toggle_type_repas', type_id=t.id) }}"
+                              method="POST" style="display:inline">
+                            <button type="submit" class="btn btn-outline-secondary btn-sm"
+                                    title="{% if t.actif %}Désactiver{% else %}Activer{% endif %}">
+                                <i class="bi {% if t.actif %}bi-eye-slash{% else %}bi-eye{% endif %}"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% else %}
+        <div class="p-3 text-muted small">
+            <i class="bi bi-info-circle"></i>
+            Aucun type de repas créé. Cliquez sur "Ajouter" pour commencer.
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+{# ═══════════════════════════════════════════════════════════
+   SECTION 2 — GESTION DES CONGÉS (deux colonnes)
+   Colonne gauche : formulaire d'ajout de congé
+   Colonne droite : liste des congés à venir
+   ═══════════════════════════════════════════════════════════ #}
+<div class="row g-4">
+
+    {# ── Colonne gauche : formulaire ajout congé ──────────── #}
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="fw-bold mb-3" style="font-size:1rem;color:var(--navy)">
+                    <i class="bi bi-calendar-x"></i> Ajouter un congé
+                </h3>
+                <p class="text-muted small mb-3">
+                    Tous les lundi, mardi, jeudi et vendredi sont ouverts par défaut.
+                    Encodez uniquement les jours fermés (vacances, ponts...).
+                </p>
+
+                <form action="{{ url_for('main.admin_ajouter_conge') }}" method="POST">
+
+                    <div class="mb-3">
+                        <label for="motif" class="form-label fw-semibold small" style="color:var(--navy)">
+                            Motif <span class="fw-normal text-muted">(optionnel)</span>
+                        </label>
+                        <input type="text" id="motif" name="motif"
+                               class="form-control"
+                               placeholder="Ex : Toussaint, Noël, Pont...">
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label for="date_debut" class="form-label fw-semibold small" style="color:var(--navy)">
+                                Du *
+                            </label>
+                            <input type="date" id="date_debut" name="date_debut"
+                                   class="form-control" required>
+                        </div>
+                        <div class="col-6">
+                            <label for="date_fin" class="form-label fw-semibold small" style="color:var(--navy)">
+                                Au *
+                            </label>
+                            <input type="date" id="date_fin" name="date_fin"
+                                   class="form-control" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-navy w-100">
+                        <i class="bi bi-calendar-plus"></i> Ajouter le congé
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {# ── Colonne droite : liste des congés à venir ─────────── #}
+    <div class="col-md-7">
+        <div class="card">
+            <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+    <h3 class="fw-bold mb-0" style="font-size:1rem;color:var(--navy)">
+        <i class="bi bi-calendar3"></i> Congés à venir
+        <span class="badge bg-secondary ms-2">{{ conges|length }}</span>
+    </h3>
+    {# Bouton import CSV — affiche le formulaire d'upload #}
+    <button class="btn btn-outline-secondary btn-sm"
+            data-bs-toggle="collapse"
+            data-bs-target="#formImportConges">
+        <i class="bi bi-upload"></i> Importer CSV
+    </button>
+</div>
+
+{# Formulaire d'import CSV — masqué par défaut #}
+<div class="collapse" id="formImportConges">
+    <div class="p-3 border-bottom bg-light">
+        <p class="text-muted small mb-2">
+            <i class="bi bi-info-circle"></i>
+            Format CSV attendu : <code>motif,date_debut,date_fin</code>
+            — dates au format <code>YYYY-MM-DD</code>
+        </p>
+        <form action="{{ url_for('main.admin_importer_conges_csv') }}"
+              method="POST"
+              enctype="multipart/form-data"
+              class="d-flex gap-2 align-items-center">
+            <input type="file" name="fichier_csv"
+                   accept=".csv"
+                   class="form-control form-control-sm"
+                   style="max-width:300px"
+                   required>
+            <button type="submit" class="btn btn-navy btn-sm">
+                <i class="bi bi-upload"></i> Importer
+            </button>
+        </form>
+        <p class="text-muted small mt-2 mb-0">
+            Exemple : <code>Toussaint,2025-11-01,2025-11-09</code>
+        </p>
+    </div>
+</div>
+
+                {% if conges %}
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Motif</th>
+                            <th>Du</th>
+                            <th>Au</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in conges %}
+                        <tr>
+                            {# Motif ou "Sans motif" si non renseigné #}
+                            <td>{{ c.motif or '—' }}</td>
+                            <td>{{ c.date_debut.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ c.date_fin.strftime('%d/%m/%Y') }}</td>
+                            <td>
+                                {# Bouton supprimer le congé #}
+                                <form action="{{ url_for('main.admin_supprimer_conge', conge_id=c.id) }}"
+                                      method="POST" style="display:inline">
+                                    <button type="submit"
+                                            class="btn btn-outline-secondary btn-sm"
+                                            style="color:var(--red)"
+                                            onclick="return confirm('Supprimer ce congé ?')">
+                                        <i class="bi bi-trash"></i> Supprimer
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                {% else %}
+                <div class="p-3 text-muted small">
+                    <i class="bi bi-info-circle"></i>
+                    Aucun congé encodé. Les repas sont disponibles tous les
+                    lundi, mardi, jeudi et vendredi.
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    /**
+     * sauvegarder(typeId)
+     * Copie les valeurs des champs visibles dans les inputs cachés
+     * du formulaire, puis soumet le formulaire vers admin_modifier_type_repas.
+     *
+     * On ne peut pas mettre les inputs directement dans le formulaire
+     * car ils sont dans des <td> du tableau — on utilise donc des
+     * champs cachés comme intermédiaire.
+     */
+    function sauvegarder(typeId) {
+        document.getElementById('h_nom_'       + typeId).value =
+            document.getElementById('nom_'       + typeId).value;
+        document.getElementById('h_prix_'      + typeId).value =
+            document.getElementById('prix_'      + typeId).value;
+        document.getElementById('h_categorie_' + typeId).value =
+            document.getElementById('categorie_' + typeId).value;
+
+        document.getElementById('form_modifier_' + typeId).submit();
+    }
+</script>
+{% endblock %}

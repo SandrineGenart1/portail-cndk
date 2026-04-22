@@ -116,10 +116,9 @@
 
             <!-- Fonctionnalités futures : liens désactivés avec badge "Bientôt" -->
             <!-- href="#" : lien vide, ne navigue pas -->
-            <a href="#" class="sidebar-link">
+            <a href="{{ url_for('main.admin_calendrier_repas') }}"
+                class="sidebar-link {% if active == 'calendrier_repas' %}active{% endif %}">
                 <i class="bi bi-calendar3"></i> Calendrier des repas
-                <!-- badge-soon : petit label grisé aligné à droite du lien -->
-                <span class="badge-soon">Bientôt</span>
             </a>
 
             <a href="{{ url_for('main.admin_portefeuille') }}"

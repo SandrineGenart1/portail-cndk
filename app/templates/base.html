@@ -122,9 +122,9 @@
                 <span class="badge-soon">Bientôt</span>
             </a>
 
-            <a href="#" class="sidebar-link">
+            <a href="{{ url_for('main.admin_portefeuille') }}"
+                class="sidebar-link {% if active == 'portefeuille' %}active{% endif %}">
                 <i class="bi bi-wallet2"></i> Portefeuilles élèves
-                <span class="badge-soon">Bientôt</span>
             </a>
 
             <a href="#" class="sidebar-link">

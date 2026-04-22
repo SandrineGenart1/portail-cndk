@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{# Hérite de base.html : sidebar, topbar, flash messages inclus automatiquement #}
+
+{% block title %}Import extrait bancaire — Admin CNDK{% endblock %}
+{% block eyebrow %}Administration — Portefeuilles{% endblock %}
+{% block page_title %}Import extrait bancaire{% endblock %}
+{% block page_subtitle %}Rechargez les portefeuilles élèves depuis un fichier CSV bancaire.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('main.admin_portefeuille') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Retour aux portefeuilles
+</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-body">
+
+        {# enctype="multipart/form-data" : OBLIGATOIRE pour l'upload de fichier #}
+        <form action="{{ url_for('main.admin_portefeuille_import') }}"
+              method="POST"
+              enctype="multipart/form-data"
+              id="formImport">
+
+            <!-- Zone de dépôt du fichier CSV -->
+            {# import-zone : notre classe CSS dans style.css #}
+            <div class="import-zone" id="dropZone"
+                 onclick="document.getElementById('fichier_csv').click()">
+
+                <i class="bi bi-file-earmark-spreadsheet"
+                   style="font-size:2.5rem;color:var(--navy);margin-bottom:0.75rem;display:block"></i>
+
+                <div>
+                    <label class="label-file">Choisir un fichier CSV</label>
+                    ou glissez-déposez ici
+                </div>
+
+                <div class="hint">Fichier CSV exporté depuis votre banque — Encodage UTF-8</div>
+
+                {# Nom du fichier sélectionné, affiché par JavaScript #}
+                <div class="fichier-selectionne" id="nomFichier" style="display:none"></div>
+
+                {# Input file caché, déclenché par le onclick de la zone #}
+                <input type="file" id="fichier_csv" name="fichier_csv"
+                       accept=".csv" onchange="afficherNom(this)">
+            </div>
+
+            <!-- Explication du fonctionnement -->
+            <div class="format-box mt-3">
+                <h3>
+                    <i class="bi bi-info-circle"></i> Comment fonctionne l'import ?
+                </h3>
+                <ul>
+                    <li>
+                        L'application <strong>détecte automatiquement</strong> les colonnes —
+                        pas besoin que le CSV ait un format précis
+                    </li>
+                    <li>
+                        Elle cherche dans chaque ligne une
+                        <strong>référence structurée</strong> au format
+                        <code>+++XXX/XXXX/XXXXX+++</code>
+                    </li>
+                    <li>
+                        Le matricule FASE est extrait de la référence et
+                        <strong>comparé aux élèves</strong> de la base de données
+                    </li>
+                    <li>
+                        Si l'élève est trouvé → son
+                        <strong>portefeuille est crédité</strong> du montant du virement
+                    </li>
+                    <li>
+                        Les lignes sans référence structurée reconnue sont
+                        <strong>ignorées silencieusement</strong>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Avertissement -->
+            <div class="warning-box">
+                <strong>
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Vérifiez avant d'importer
+                </strong>
+                Chaque import crédite les portefeuilles immédiatement.
+                Un double import du même fichier créditerait les élèves deux fois.
+                Vérifiez que vous n'avez pas déjà importé cet extrait.
+            </div>
+
+            <!-- Boutons d'action -->
+            <div class="d-flex gap-3 align-items-center mt-4">
+                {# Désactivé par défaut, activé par JavaScript après sélection #}
+                <button type="submit" class="btn btn-navy" id="btnImport" disabled>
+                    <i class="bi bi-upload"></i> Importer l'extrait
+                </button>
+                <a href="{{ url_for('main.admin_portefeuille') }}"
+                   class="btn btn-outline-secondary">
+                    Annuler
+                </a>
+                <span id="hintFichier" class="text-muted small">
+                    <i class="bi bi-info-circle"></i> Sélectionnez d'abord un fichier CSV
+                </span>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Récupération des éléments du DOM
+    const dropZone  = document.getElementById('dropZone');
+    const input     = document.getElementById('fichier_csv');
+    const nomDiv    = document.getElementById('nomFichier');
+    const btnImport = document.getElementById('btnImport');
+    const hint      = document.getElementById('hintFichier');
+
+    /**
+     * afficherNom(inputEl)
+     * Affiche le nom du fichier sélectionné et active le bouton submit.
+     */
+    function afficherNom(inputEl) {
+        if (inputEl.files && inputEl.files[0]) {
+            nomDiv.textContent = '✅ ' + inputEl.files[0].name;
+            nomDiv.style.display = 'block';
+            btnImport.disabled = false;
+            hint.style.display = 'none';
+        }
+    }
+
+    // Glisser-déposer : empêche le navigateur d'ouvrir le fichier
+    dropZone.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+    });
+
+    // Retire le style de survol quand on quitte la zone
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('drag-over');
+    });
+
+    // Récupère le fichier déposé et appelle afficherNom()
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        if (e.dataTransfer.files.length > 0) {
+            input.files = e.dataTransfer.files;
+            afficherNom(input);
+        }
+    });
+</script>
+{% endblock %}

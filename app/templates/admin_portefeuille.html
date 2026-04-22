@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{# Hérite de base.html : sidebar, topbar, flash messages inclus automatiquement #}
+
+{% block title %}Portefeuilles élèves — Admin CNDK{% endblock %}
+{% block eyebrow %}Administration — Portefeuilles{% endblock %}
+{% block page_title %}Portefeuilles élèves{% endblock %}
+{% block page_subtitle %}Soldes des portefeuilles et historique des rechargements.{% endblock %}
+
+{% block topbar_actions %}
+{# Bouton vers la page d'import de l'extrait bancaire #}
+<a href="{{ url_for('main.admin_portefeuille_import') }}" class="btn btn-amber">
+    <i class="bi bi-upload"></i> Importer un extrait bancaire
+</a>
+<a href="{{ url_for('main.admin_dashboard') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Tableau de bord
+</a>
+{% endblock %}
+
+{% block content %}
+
+{# ── Statistiques rapides ─────────────────────────────────── #}
+<div class="stats-row mb-4">
+
+    {# Calcul du solde total de tous les portefeuilles #}
+    {% set solde_total = eleves | sum(attribute='solde_portefeuille') %}
+
+    <div class="stat-card">
+        <div class="stat-label">Solde total</div>
+        <div class="stat-value" style="color:var(--green)">
+            {{ "%.2f"|format(solde_total) }} €
+        </div>
+        <div class="stat-sub">tous les élèves</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Élèves avec solde</div>
+        {# Compte les élèves dont le solde est supérieur à 0 #}
+        <div class="stat-value">
+            {{ eleves | selectattr('solde_portefeuille', 'gt', 0) | list | length }}
+        </div>
+        <div class="stat-sub">solde positif</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Élèves sans solde</div>
+        {# Compte les élèves dont le solde est 0 ou négatif #}
+        <div class="stat-value" style="color:var(--amber)">
+            {{ eleves | selectattr('solde_portefeuille', 'le', 0) | list | length }}
+        </div>
+        <div class="stat-sub">solde à zéro</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Total élèves</div>
+        <div class="stat-value">{{ eleves | length }}</div>
+        <div class="stat-sub">élèves actifs</div>
+    </div>
+
+</div>
+
+{# ── Tableau des soldes ───────────────────────────────────── #}
+{% if eleves %}
+<div class="card">
+    <div class="card-body p-0">
+        {# table-hover : effet de survol, mb-0 : pas de marge sous le tableau #}
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Élève</th>
+                    <th>Classe</th>
+                    <th>Matricule FASE</th>
+                    <th>Solde</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for eleve in eleves %}
+                <tr>
+                    <td>
+                        <strong>{{ eleve.nom }}</strong> {{ eleve.prenom }}
+                    </td>
+                    <td>{{ eleve.classe }}</td>
+                    <td>
+                        {# Affiche le matricule ou un tiret si non renseigné #}
+                        {% if eleve.matricule_fase %}
+                            <code>{{ eleve.matricule_fase }}</code>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {# Colore le solde selon sa valeur #}
+                        {% if eleve.solde_portefeuille > 0 %}
+                            <span style="color:var(--green);font-weight:600">
+                                {{ "%.2f"|format(eleve.solde_portefeuille|float) }} €
+                            </span>
+                        {% elif eleve.solde_portefeuille == 0 %}
+                            <span class="text-muted">0.00 €</span>
+                        {% else %}
+                            {# Solde négatif : affiché en rouge #}
+                            <span style="color:var(--red);font-weight:600">
+                                {{ "%.2f"|format(eleve.solde_portefeuille|float) }} €
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {# Lien vers l'historique des mouvements de l'élève #}
+                        <a href="{{ url_for('main.admin_portefeuille_historique', eleve_id=eleve.id) }}"
+                           class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-clock-history"></i> Historique
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% else %}
+<div class="card">
+    <div class="card-body">
+        <p class="text-muted mb-0">
+            <i class="bi bi-info-circle"></i>
+            Aucun élève actif trouvé. Importez d'abord la liste des élèves.
+        </p>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

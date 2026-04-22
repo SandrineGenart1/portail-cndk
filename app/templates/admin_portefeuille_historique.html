@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{# Hérite de base.html : sidebar, topbar, flash messages inclus automatiquement #}
+
+{% block title %}Historique portefeuille — {{ eleve.prenom }} {{ eleve.nom }}{% endblock %}
+{% block eyebrow %}Administration — Portefeuilles{% endblock %}
+{% block page_title %}Historique de {{ eleve.prenom }} {{ eleve.nom }}{% endblock %}
+{% block page_subtitle %}Détail de tous les mouvements du portefeuille de cet élève.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('main.admin_portefeuille') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Retour aux portefeuilles
+</a>
+{% endblock %}
+
+{% block content %}
+
+{# ── Carte récapitulative de l'élève ─────────────────────── #}
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row align-items-center">
+
+            {# Informations de l'élève #}
+            <div class="col-md-6">
+                <p class="section-label mb-1">Élève</p>
+                <h4 class="fw-bold mb-0" style="color:var(--navy)">
+                    {{ eleve.prenom }} {{ eleve.nom }}
+                </h4>
+                <p class="text-muted small mb-0">
+                    Classe : <strong>{{ eleve.classe }}</strong>
+                    {% if eleve.matricule_fase %}
+                    — Matricule FASE : <code>{{ eleve.matricule_fase }}</code>
+                    {% endif %}
+                </p>
+            </div>
+
+            {# Solde actuel mis en évidence #}
+            <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                <p class="section-label mb-1">Solde actuel</p>
+                {% if eleve.solde_portefeuille > 0 %}
+                    <h3 class="fw-bold mb-0" style="color:var(--green)">
+                        {{ "%.2f"|format(eleve.solde_portefeuille|float) }} €
+                    </h3>
+                {% elif eleve.solde_portefeuille == 0 %}
+                    <h3 class="fw-bold mb-0 text-muted">0.00 €</h3>
+                {% else %}
+                    <h3 class="fw-bold mb-0" style="color:var(--red)">
+                        {{ "%.2f"|format(eleve.solde_portefeuille|float) }} €
+                    </h3>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{# ── Tableau des mouvements ───────────────────────────────── #}
+{% if mouvements %}
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Motif</th>
+                    <th>Montant</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in mouvements %}
+                <tr>
+                    {# Date et heure du mouvement #}
+                    <td class="text-muted small">
+                        {{ m.created_at.strftime('%d/%m/%Y %H:%M') }}
+                    </td>
+
+                    {# Badge coloré selon le type de mouvement #}
+                    <td>
+                        {% if m.type == "credit" %}
+                            {# Crédit : vert — rechargement depuis extrait bancaire #}
+                            <span class="badge badge-success">
+                                <i class="bi bi-arrow-up-circle"></i> Crédit
+                            </span>
+                        {% elif m.type == "debit" %}
+                            {# Débit : orange — déduction suite à réservation repas #}
+                            <span class="badge badge-warning">
+                                <i class="bi bi-arrow-down-circle"></i> Débit
+                            </span>
+                        {% else %}
+                            {# Remboursement : bleu — annulation de réservation #}
+                            <span class="badge" style="background:#EFF6FF;color:#1E40AF">
+                                <i class="bi bi-arrow-counterclockwise"></i> Remboursement
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    {# Motif du mouvement (ex: "Rechargement extrait bancaire") #}
+                    <td>{{ m.motif or '—' }}</td>
+
+                    {# Montant coloré selon le type #}
+                    <td>
+                        {% if m.type == "credit" or m.type == "remb" %}
+                            {# Crédit et remboursement : montant en vert avec + #}
+                            <span style="color:var(--green);font-weight:600">
+                                + {{ "%.2f"|format(m.montant|float) }} €
+                            </span>
+                        {% else %}
+                            {# Débit : montant en rouge avec - #}
+                            <span style="color:var(--red);font-weight:600">
+                                - {{ "%.2f"|format(m.montant|float) }} €
+                            </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% else %}
+{# Message si aucun mouvement n'existe encore pour cet élève #}
+<div class="card">
+    <div class="card-body">
+        <p class="text-muted mb-0">
+            <i class="bi bi-info-circle"></i>
+            Aucun mouvement enregistré pour cet élève.
+        </p>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

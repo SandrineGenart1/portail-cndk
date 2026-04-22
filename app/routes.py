@@ -11,7 +11,7 @@ from sqlalchemy import func, case
 
 from app.extensions import db
 from app.models import (
-    ParentEleve, Eleve, Activite, ActiviteEleve, PaiementActivite
+    ParentEleve, Eleve, Activite, ActiviteEleve, PaiementActivite, MouvementPortefeuille
 )
 from app.qr_service import generer_qr_code_base64, generer_qr_code_png
 
@@ -749,4 +749,207 @@ def admin_export_bob50():
         mimetype="application/zip",
         download_name=nom_fichier,
         as_attachment=True
+    )
+
+
+# ─────────────────────────────────────────────────────────────
+# PORTEFEUILLE ÉLÈVES
+# ─────────────────────────────────────────────────────────────
+
+@main.route("/admin/portefeuille")
+def admin_portefeuille():
+    """
+    Page principale du portefeuille.
+    Affiche la liste de tous les élèves actifs avec leur solde.
+    """
+
+    # Récupère tous les élèves actifs triés par classe puis nom
+    eleves = (
+        Eleve.query
+        .filter(Eleve.actif == True)
+        .order_by(Eleve.classe, Eleve.nom, Eleve.prenom)
+        .all()
+    )
+
+    return render_template(
+        "admin_portefeuille.html",
+        eleves=eleves,
+        role="admin",
+        active="portefeuille",
+        current_user_name="Administrateur (test)"
+    )
+
+
+@main.route("/admin/portefeuille/import", methods=["GET", "POST"])
+def admin_portefeuille_import():
+    """
+    Import d'un extrait bancaire CSV pour recharger les portefeuilles.
+
+    Logique d'import :
+    1. Lit chaque ligne du CSV
+    2. Cherche une référence structurée +++XXX/XXXX/XXXXX+++ dans toutes les cellules
+    3. Extrait le matricule FASE depuis la référence
+    4. Cherche l'élève correspondant dans la base
+    5. Si trouvé → crédite le portefeuille + crée un MouvementPortefeuille
+    6. Si non trouvé → ligne signalée comme non reconnue
+    """
+
+    ctx = {
+        "role": "admin",
+        "active": "portefeuille",
+        "current_user_name": "Administrateur (test)"
+    }
+
+    if request.method == "GET":
+        return render_template("admin_portefeuille_import.html", **ctx)
+
+    fichier = request.files.get("fichier_csv")
+
+    if not fichier or fichier.filename == "":
+        flash("Aucun fichier sélectionné.", "erreur")
+        return render_template("admin_portefeuille_import.html", **ctx)
+
+    if not fichier.filename.lower().endswith(".csv"):
+        flash("Le fichier doit être au format .csv", "erreur")
+        return render_template("admin_portefeuille_import.html", **ctx)
+
+    try:
+        contenu = fichier.read().decode("utf-8-sig")
+        lecteur = csv.reader(io.StringIO(contenu))
+
+        nb_credites    = 0  # Élèves crédités avec succès
+        nb_non_trouves = 0  # Références non reconnues
+        nb_erreurs     = 0  # Lignes avec problèmes
+        details_non_trouves = []  # Détail des lignes non reconnues
+
+        for i, ligne in enumerate(lecteur, start=1):
+
+            # Ignore les lignes vides
+            if not any(ligne):
+                continue
+
+            # ── Recherche de la référence structurée ────────────
+            # On cherche le pattern +++XXX/XXXX/XXXXX+++ dans
+            # toutes les cellules de la ligne
+            reference = None
+            montant   = None
+
+            for cellule in ligne:
+                cellule = cellule.strip()
+
+                # Détection référence structurée (format belge)
+                # Pattern : +++XXX/XXXX/XXXXX+++
+                if cellule.startswith("+++") and cellule.endswith("+++"):
+                    reference = cellule
+                    continue
+
+                # Détection montant : cellule contenant un nombre décimal
+                # On essaie de convertir chaque cellule en float
+                if montant is None:
+                    try:
+                        # Remplace la virgule par un point (format européen)
+                        valeur = float(cellule.replace(",", ".").replace(" ", ""))
+                        if valeur > 0:
+                            montant = valeur
+                    except ValueError:
+                        pass
+
+            # Si pas de référence structurée trouvée → ligne ignorée
+            if not reference:
+                continue
+
+            # ── Extraction du matricule FASE ─────────────────────
+            # Référence : +++123/4567/89012+++
+            # On extrait les chiffres : 123456789012
+            matricule = reference.replace("+", "").replace("/", "").strip()
+
+            if not matricule:
+                nb_erreurs += 1
+                continue
+
+            # ── Recherche de l'élève ──────────────────────────────
+            eleve = Eleve.query.filter_by(
+                matricule_fase=matricule,
+                actif=True
+            ).first()
+
+            if eleve is None:
+                nb_non_trouves += 1
+                details_non_trouves.append(
+                    f"Ligne {i} — matricule {matricule} non trouvé"
+                )
+                continue
+
+            # ── Crédit du portefeuille ────────────────────────────
+            # Si montant non détecté automatiquement → on met 0
+            # et on signale (l'admin devra vérifier)
+            if montant is None:
+                nb_erreurs += 1
+                details_non_trouves.append(
+                    f"Ligne {i} — {eleve.prenom} {eleve.nom} : montant non détecté"
+                )
+                continue
+
+            # Mise à jour du solde de l'élève
+            eleve.solde_portefeuille = float(eleve.solde_portefeuille) + montant
+
+            # Création du mouvement d'historique
+            mouvement = MouvementPortefeuille(
+                eleve_id=eleve.id,
+                montant=montant,
+                type="credit",
+                motif=f"Rechargement extrait bancaire — réf. {reference}"
+            )
+            db.session.add(mouvement)
+            nb_credites += 1
+
+        db.session.commit()
+
+    except UnicodeDecodeError:
+        flash("Erreur d'encodage. Enregistrez le fichier en UTF-8.", "erreur")
+        return render_template("admin_portefeuille_import.html", **ctx)
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erreur lors de l'import : {str(e)}", "erreur")
+        return render_template("admin_portefeuille_import.html", **ctx)
+
+    # ── Messages de résultat ──────────────────────────────────
+    if nb_credites > 0:
+        flash(f"{nb_credites} portefeuille(s) crédité(s) avec succès.", "succes")
+    if nb_non_trouves > 0:
+        flash(f"{nb_non_trouves} référence(s) non reconnue(s).", "erreur")
+        for detail in details_non_trouves[:5]:
+            flash(detail, "erreur")
+    if nb_credites == 0 and nb_non_trouves == 0:
+        flash("Aucune référence structurée trouvée dans ce fichier.", "erreur")
+
+    return redirect(url_for("main.admin_portefeuille"))
+
+
+@main.route("/admin/portefeuille/historique/<int:eleve_id>")
+def admin_portefeuille_historique(eleve_id):
+    """
+    Affiche l'historique des mouvements du portefeuille d'un élève.
+    Accessible depuis le bouton "Historique" dans admin_portefeuille.html.
+    """
+
+    # Récupère l'élève ou retourne une erreur 404 si introuvable
+    eleve = Eleve.query.get_or_404(eleve_id)
+
+    # Récupère tous les mouvements de cet élève, du plus récent au plus ancien
+    mouvements = (
+        MouvementPortefeuille.query
+        .filter_by(eleve_id=eleve_id)
+        .order_by(MouvementPortefeuille.created_at.desc())
+        .all()
+    )
+
+    return render_template(
+        "admin_portefeuille_historique.html",
+        eleve=eleve,
+        mouvements=mouvements,
+        role="admin",
+        active="portefeuille",
+        current_user_name="Administrateur (test)"
     )

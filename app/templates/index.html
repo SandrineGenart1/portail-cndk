@@ -1,55 +1,195 @@
+{#     index.html — Espace parent : liste des activités à payer
+    ──────────────────────────────────────────────────────────────────────
+    Ce fichier est un TEMPLATE JINJA2.
+    Jinja2 est le moteur de templates intégré à Flask. Il permet de mélanger
+    du HTML statique avec des données dynamiques envoyées depuis Python.
+
+    Les balises Jinja2 :
+    {{ variable }}        → affiche la valeur d'une variable Python
+    {% instruction %}     → exécute une instruction (if, for, extends…)
+    commentaire entre accolage hashtag    → commentaire (non visible dans le HTML final) #}
+
+
+{# ── HÉRITAGE DE TEMPLATE ────────────────────────────────────────────────
+    {% extends "base.html" %} signifie que cette page HÉRITE de base.html.
+
+    base.html contient tout le "squelette" commun à toutes les pages :
+        - la balise <html>, <head>, <body>
+        - la sidebar avec la navigation
+        - la topbar avec le titre de la page
+        - les messages flash (succès, erreurs)
+        - les feuilles de style CSS
+
+    Cette page ne redéfinit QUE ce qui est différent, via des "blocs".
+    Tout ce qui n'est pas dans un bloc est ignoré.
+#}
 {% extends "base.html" %}
 
+
+{# ── BLOCS — contenu injecté dans base.html ──────────────────────────────
+    base.html contient des emplacements réservés appelés "blocs" :
+        {% block nom_du_bloc %}{% endblock %}
+
+    Ici on remplit ces emplacements avec le contenu spécifique à cette page.
+    Flask/Jinja2 "assemble" automatiquement base.html + ces blocs.
+#}
+
+{# Titre affiché dans l'onglet du navigateur (<title> dans le <head>) #}
 {% block title %}Accueil — Portail CNDK{% endblock %}
+
+{# Petit texte en majuscules au-dessus du titre principal (topbar) #}
 {% block eyebrow %}Espace parent{% endblock %}
+
+{# Titre principal affiché dans la topbar de la page #}
 {% block page_title %}Mes activités{% endblock %}
+
+{# Sous-titre affiché sous le titre principal dans la topbar #}
 {% block page_subtitle %}Suivi des activités et paiements des enfants.{% endblock %}
 
+
+{# ── CONTENU PRINCIPAL ────────────────────────────────────────────────────
+    Tout ce qui est dans {% block content %} ... {% endblock %}
+    sera injecté dans la zone principale de base.html (div.page-body).
+
+    La variable "lignes" vient de routes.py :
+        return render_template("index.html", lignes=lignes, ...)
+
+    "lignes" est une liste d'objets ActiviteEleve retournés par SQLAlchemy.
+    Chaque objet représente une ligne de la table activites_eleves,
+    avec ses relations chargées automatiquement :
+        ligne.id              → identifiant unique de l'affectation
+        ligne.montant_attendu → montant que le parent doit payer
+        ligne.statut          → "en_attente" ou "paye"
+        ligne.eleve           → objet Eleve lié (relation SQLAlchemy)
+        ligne.eleve.prenom    → prénom de l'élève
+        ligne.eleve.nom       → nom de l'élève
+        ligne.activite        → objet Activite lié (relation SQLAlchemy)
+        ligne.activite.titre  → nom de l'activité (ex : "Voyage à Paris")
+#}
 {% block content %}
 
+{# ── CONDITION : y a-t-il des activités à afficher ? ─────────────────────
+    "lignes" est la liste envoyée par Flask.
+    En Python/Jinja2, une liste vide est considérée comme "fausse" (falsy).
+    Si la liste est vide → on affiche le message "Aucune activité".
+    Si elle contient des éléments → on affiche le tableau.
+#}
 {% if lignes %}
-<div class="card">
-    <table>
-        <thead>
-            <tr>
-                <th>Élève</th>
-                <th>Activité</th>
-                <th>Montant</th>
-                <th>Statut</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for ligne in lignes %}
-            <tr>
-                <td>{{ ligne.eleve.prenom }} {{ ligne.eleve.nom }}</td>
-                <td>{{ ligne.activite.titre }}</td>
-                <td>{{ ligne.montant_attendu }} €</td>
-                <td>
-                    {% if ligne.statut == "paye" %}
-                        <span class="badge badge-success">Payé</span>
-                    {% else %}
-                        <span class="badge badge-warning">En attente</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if ligne.statut != "paye" %}
-                        <a href="{{ url_for('main.confirmation_paiement', activite_eleve_id=ligne.id) }}" class="btn btn-primary">
-                            Payer en ligne
-                        </a>
-                    {% else %}
-                        <span class="muted">Aucune action</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-{% else %}
-<div class="card">
-    <p class="muted">Aucune activité à afficher pour le moment.</p>
-</div>
-{% endif %}
 
-{% endblock %}
+    {# "card" est une classe CSS définie dans style.css.
+        Elle affiche un bloc blanc avec bordure arrondie et ombre légère. #}
+    <div class="card">
+
+        {# ── TABLEAU HTML ────────────────────────────────────────────────
+            Structure standard d'un tableau HTML :
+                <table>   → le tableau entier
+                <thead>   → en-tête (titres des colonnes)
+                <tbody>   → corps (les lignes de données)
+                <tr>      → une ligne (table row)
+                <th>      → une cellule d'en-tête (table header)
+                <td>      → une cellule de données (table data)
+        #}
+        <table>
+            <thead>
+                <tr>
+                    <th>Élève</th>
+                    <th>Activité</th>
+                    <th>Montant</th>
+                    <th>Statut</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {# ── BOUCLE : on parcourt chaque activité de la liste ─────
+                    {% for ligne in lignes %} est l'équivalent Jinja2 de :
+                        for ligne in lignes:  (Python)
+
+                    À chaque itération, "ligne" est un objet ActiviteEleve.
+                    La boucle génère une ligne <tr> par activité trouvée.
+                #}
+                {% for ligne in lignes %}
+                <tr>
+
+                    {# Prénom et nom de l'élève concerné par cette activité.
+                        On accède aux données de l'élève via la RELATION
+                        SQLAlchemy : ligne.eleve charge automatiquement
+                        l'objet Eleve correspondant depuis la base de données.
+
+                         Ancienne notation (psycopg2/tuples) : ligne[1]
+                         Nouvelle notation (SQLAlchemy/objets) : ligne.eleve.prenom
+                    #}
+                    <td>{{ ligne.eleve.prenom }} {{ ligne.eleve.nom }}</td>
+
+                    {# Titre de l'activité, accessible via la relation
+                        SQLAlchemy : ligne.activite → objet Activite #}
+                    <td>{{ ligne.activite.titre }}</td>
+
+                    {# Montant attendu pour cet élève, stocké directement
+                        dans la table activites_eleves (type Numeric(8,2) :
+                        2 décimales garanties, pas d'erreur d'arrondi) #}
+                    <td>{{ ligne.montant_attendu }} €</td>
+
+                    {# ── Badge de statut ──────────────────────────────────
+                        On affiche un badge coloré selon la valeur du statut.
+
+                        "paye"       → badge vert  (CSS : badge-success)
+                        toute autre valeur → badge orange (CSS : badge-warning)
+
+                        Les valeurs possibles du statut sont définies dans
+                        models.py : "en_attente" (défaut) ou "paye".
+                    #}
+                    <td>
+                        {% if ligne.statut == "paye" %}
+                            <span class="badge badge-success">Payé</span>
+                        {% else %}
+                            <span class="badge badge-warning">En attente</span>
+                        {% endif %}
+                    </td>
+
+                    {# ── Bouton d'action ──────────────────────────────────
+                        Si l'activité est déjà payée → on affiche un texte
+                        grisé, sans lien cliquable.
+                        Sinon → on affiche un lien vers la page QR code.
+
+                        url_for('main.mon_qrcode', activite_eleve_id=ligne.id)
+                        ↑ Fonction Flask qui génère dynamiquement l'URL.
+                            'main'           → nom du Blueprint (routes.py)
+                            'mon_qrcode'     → nom de la fonction Python
+                            activite_eleve_id=ligne.id → paramètre dans l'URL
+                                              résultat : /mon-qrcode/42
+
+                        ⚠️  On utilise ligne.id et NON ligne[0].
+                            SQLAlchemy retourne des OBJETS, pas des tuples.
+                            ligne[0] était la vieille notation psycopg2.
+                    #}
+                    <td>
+                        {% if ligne.statut != "paye" %}
+                            <a href="{{ url_for('main.mon_qrcode', activite_eleve_id=ligne.id) }}"
+                               class="btn btn-primary">
+                                📱 Payer par virement
+                            </a>
+                        {% else %}
+                            {# Classe "muted" : texte grisé, sans lien #}
+                            <span class="muted">Aucune action</span>
+                        {% endif %}
+                    </td>
+
+                </tr>
+                {% endfor %}{# ← fin de la boucle for ligne in lignes #}
+
+            </tbody>
+        </table>
+    </div>
+
+{% else %}
+    {# Ce bloc s'affiche quand la liste "lignes" est vide.
+        Causes possibles :
+        - le parent_id=1 (simulé) n'a pas d'enfants liés dans parents_eleves
+        - aucune activité n'a encore été créée et affectée à des élèves #}
+    <div class="card">
+        <p class="muted">Aucune activité à afficher pour le moment.</p>
+    </div>
+{% endif %}{# ← fin du if lignes #}
+
+{% endblock %}{# ← fin du bloc content — tout ce qui suit est ignoré #}

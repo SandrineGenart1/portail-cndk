@@ -14,6 +14,14 @@ class UtilisateurParent(db.Model):
     consentement_rgpd = db.Column(db.Boolean, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
 
+       # ── NOUVEAU — Export Bob50 ───────────────────────────────
+    # Numéro de compte client dans Bob50 (ex : "4808").
+    # Chaque famille a un numéro unique attribué par la comptabilité.
+    # Ce numéro correspond au champ TCOMPAN dans HFac.dbf.
+    # À renseigner via l'import CSV ProEco ou manuellement dans le back-office.
+    # NULL = parent pas encore associé à un compte Bob50 → export impossible.
+    bob50_compte = db.Column(db.String(20))
+
     liens_eleves = db.relationship(
         "ParentEleve",
         back_populates="parent",
@@ -54,6 +62,7 @@ class Eleve(db.Model):
     classe = db.Column(db.String(10), nullable=False)
     option = db.Column(db.String(50))
     annee_scolaire = db.Column(db.String(20), nullable=False)
+    matricule_fase = db.Column(db.String(20), unique=True)
     actif = db.Column(db.Boolean, nullable=False, default=True)
 
     liens_parents = db.relationship(
@@ -107,6 +116,16 @@ class Activite(db.Model):
     created_by = db.Column(db.Integer, db.ForeignKey("utilisateurs_staff.id"))
     created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
     options_cibles = db.Column(ARRAY(db.String))
+
+      # ── NOUVEAU — Export Bob50 ───────────────────────────────
+    # Numéro de compte comptable Bob50 pour cette activité (ex : "701003").
+    # Correspond au champ TACCOUNT dans Lfac.dbf.
+    # Permet d'utiliser un compte différent selon le type d'activité :
+    #   701003 → activités pédagogiques
+    #   701004 → voyages scolaires
+    #   etc. (à confirmer avec la comptabilité)
+    # Valeur par défaut : "701003" (compte le plus courant).
+    bob50_compte_comptable = db.Column(db.String(20), default="701003")
 
     createur = db.relationship("UtilisateurStaff", back_populates="activites_creees")
 
@@ -169,6 +188,15 @@ class PaiementActivite(db.Model):
     ref_transaction = db.Column(db.String(100), unique=True)
     paye_le = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
+
+ # ── NOUVEAU — Export Bob50 ───────────────────────────────
+    # Date et heure du dernier export vers Bob50.
+    # NULL  → ce paiement n'a pas encore été exporté (à inclure dans le prochain export)
+    # Rempli → déjà exporté (à exclure pour éviter les doublons)
+    # Permet de filtrer les paiements "nouveaux depuis le dernier export".
+    bob50_exported_at = db.Column(db.DateTime)
+
+
 
     activite_eleve = db.relationship("ActiviteEleve", back_populates="paiements")
 

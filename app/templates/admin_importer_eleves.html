@@ -10,65 +10,7 @@
 {% endblock %}
 
 {% block extra_css %}
-<style>
-    .import-zone {
-        border: 2px dashed #CBD5E1;
-        border-radius: 10px;
-        padding: 2.5rem;
-        text-align: center;
-        transition: all 0.2s;
-        cursor: pointer;
-        background: #F8FAFC;
-    }
-    .import-zone:hover, .import-zone.drag-over {
-        border-color: var(--navy);
-        background: #EFF6FF;
-    }
-    .import-zone input[type="file"] { display: none; }
-    .import-zone .label-file {
-        color: var(--navy);
-        font-weight: 600;
-        cursor: pointer;
-        text-decoration: underline;
-    }
-    .import-zone .hint { font-size: 0.85rem; color: var(--slate); margin-top: 0.5rem; }
-    .fichier-selectionne { margin-top: 1rem; font-size: 0.9rem; color: var(--green); font-weight: 500; }
-    .format-box {
-        background: #F0F9FF;
-        border: 1px solid #BAE6FD;
-        border-radius: 8px;
-        padding: 1.25rem 1.5rem;
-        margin-top: 1.5rem;
-    }
-    .format-box h3 { margin: 0 0 0.75rem; font-size: 0.95rem; color: var(--navy); }
-    .format-box code {
-        display: block;
-        background: var(--navy);
-        color: #E2E8F0;
-        padding: 0.75rem 1rem;
-        border-radius: 6px;
-        font-size: 0.85rem;
-        line-height: 1.6;
-        white-space: pre;
-    }
-    .format-box ul {
-        margin: 0.75rem 0 0;
-        padding-left: 1.25rem;
-        font-size: 0.85rem;
-        color: #475569;
-        line-height: 1.8;
-    }
-    .warning-box {
-        background: #FFFBEB;
-        border: 1px solid #FCD34D;
-        border-radius: 8px;
-        padding: 1rem 1.25rem;
-        font-size: 0.875rem;
-        color: #92400E;
-        margin-top: 1.25rem;
-    }
-    .warning-box strong { display: block; margin-bottom: 0.25rem; }
-</style>
+
 {% endblock %}
 
 {% block content %}
@@ -94,14 +36,15 @@
 
         <div class="format-box">
             <h3>📋 Format CSV attendu</h3>
-            <code>prenom,nom,classe,option,annee_scolaire
-Marie,Dupont,3A,Latin,2025-2026
-Paul,Martin,3A,Sciences,2025-2026
-Julie,Simon,5B,,2025-2026
-Lucas,Bernard,1B,Technique,2025-2026</code>
+            <code>prenom,nom,classe,option,annee_scolaire,matricule_fase
+Marie,Dupont,3A,Latin,2025-2026,12345678
+Paul,Martin,3A,Sciences,2025-2026,23456789
+Julie,Simon,5B,,2025-2026,34567890
+Lucas,Bernard,1B,Technique,2025-2026,</code>
             <ul>
                 <li><strong>prenom, nom, classe, annee_scolaire</strong> — obligatoires</li>
                 <li><strong>option</strong> — optionnel, laisser vide si pas d'option</li>
+                <li><strong>matricule_fase</strong> — optionnel, matricule FASE de l'élève (utilisé pour l'export Bob50)</li>
                 <li>Si un élève existe déjà (même nom + classe + année), son option est mise à jour</li>
                 <li>Encodage : <strong>UTF-8</strong> — dans Excel : <em>Enregistrer sous → CSV UTF-8 (avec BOM)</em></li>
             </ul>

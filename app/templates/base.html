@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Portail CNDK{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -64,6 +63,11 @@
             <a href="{{ url_for('main.admin_paiements') }}"
                class="menu-link {% if active == 'paiements' %}active{% endif %}">
                 <span class="icon">💶</span> Suivi des paiements
+            </a>
+
+            <a href="{{ url_for('main.admin_export') }}"
+               class="menu-link {% if active == 'export' %}active{% endif %}">
+                <span class="icon">📤</span> Exporter les paiements
             </a>
 
             <div class="menu-divider"></div>

@@ -143,13 +143,16 @@
 
 <div class="card">
     <form action="{{ url_for('main.admin_nouvelle_activite') }}" method="POST">
-
+        {{ form.hidden_tag() }}  {# Token CSRF généré par Flask-WTF #}
         <div class="form-section">
             <label for="titre">Titre de l'activité *</label>
             <input type="text" id="titre" name="titre"
-                   placeholder="Ex : Voyage à Paris, Théâtre, Photo de classe…"
-                   value="{{ form_data.get('titre', '') }}"
-                   required>
+           placeholder="Ex : Voyage à Paris, Théâtre, Photo de classe…"
+           value="{{ form.titre.data or '' }}"
+           required>
+            {% for erreur in form.titre.errors %}
+            <p style="color:red; font-size:0.85rem;">{{ erreur }}</p>
+            {% endfor %}
         </div>
 
         <div class="form-section">
@@ -157,31 +160,37 @@
                 Description <span style="font-weight:normal;color:var(--slate)">(optionnel)</span>
             </label>
             <textarea id="description" name="description"
-                      placeholder="Informations complémentaires pour les parents…">{{ form_data.get('description', '') }}</textarea>
+          placeholder="Informations complémentaires pour les parents…">{{ form.description.data or '' }}</textarea>
         </div>
 
         <div class="form-grid">
             <div class="form-section">
                 <label for="montant">Montant (€) *</label>
                 <input type="number" id="montant" name="montant"
-                       step="0.01" min="0.01"
-                       placeholder="Ex : 12.50"
-                       value="{{ form_data.get('montant', '') }}"
-                       required>
+                    step="0.01" min="0.01"
+                    placeholder="Ex : 12.50"
+                    value="{{ form.montant.data or '' }}"
+                    required>
+                {% for erreur in form.montant.errors %}
+                <p style="color:red; font-size:0.85rem;">{{ erreur }}</p>
+                {% endfor %}
             </div>
 
             <div class="form-section">
                 <label for="date_limite_paiement">Date limite de paiement *</label>
                 <input type="date" id="date_limite_paiement" name="date_limite_paiement"
-                       value="{{ form_data.get('date_limite_paiement', '') }}"
-                       required>
+                 value="{{ form.date_limite_paiement.data or '' }}"
+                    required>
+                    {% for erreur in form.date_limite_paiement.errors %}
+                <p style="color:red; font-size:0.85rem;">{{ erreur }}</p>
+                 {% endfor %}
             </div>
         </div>
 
         <div class="form-section">
             <div class="obligatoire-toggle">
                 <input type="checkbox" id="obligatoire" name="obligatoire"
-                       {% if form_data.get('obligatoire') %}checked{% endif %}>
+       {%           if form.obligatoire.data %}checked{% endif %}>
                 <label for="obligatoire" style="margin-bottom:0">
                     Activité obligatoire
                     <span class="hint" style="display:inline">(tous les élèves des classes sélectionnées doivent payer)</span>
@@ -200,12 +209,12 @@
             {% if classes_dispo %}
             <div class="classes-grid" id="classesGrid">
                 {% for classe in classes_dispo %}
-                <label class="classe-checkbox {% if classe in form_data.getlist('classes') %}checked{% endif %}"
+                <label class="classe-checkbox {% if classe in (request.form.getlist('classes') if request.method == 'POST' else []) %}checked{% endif %}"
                        id="label-{{ classe }}">
                     <input type="checkbox"
                            name="classes"
                            value="{{ classe }}"
-                           {% if classe in form_data.getlist('classes') %}checked{% endif %}
+                           {% if classe in (request.form.getlist('classes') if request.method == 'POST' else []) %}checked{% endif %}
                            onchange="updateStyle('{{ classe }}', this)">
                     {{ classe }}
                 </label>

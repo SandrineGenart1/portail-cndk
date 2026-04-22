@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{# Hérite de base.html : sidebar, topbar, flash messages inclus automatiquement #}
 
 {% block title %}Export paiements — Admin CNDK{% endblock %}
 {% block eyebrow %}Administration — Export{% endblock %}
@@ -6,110 +7,168 @@
 {% block page_subtitle %}Exportez en CSV pour consultation ou en DBF pour import dans Bob50.{% endblock %}
 
 {% block topbar_actions %}
-<a href="{{ url_for('main.admin_dashboard') }}" class="btn btn-light">← Tableau de bord</a>
-{% endblock %}
-
-{% block extra_css %}
-
+{# btn-outline-secondary : bouton Bootstrap avec bordure grise #}
+<a href="{{ url_for('main.admin_dashboard') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Tableau de bord
+</a>
 {% endblock %}
 
 {% block content %}
 
+{# Formulaire GET : les filtres passent dans l'URL (ex: ?activite_id=3&classe=2A) #}
+{# Cela permet de partager ou recharger la page avec les mêmes filtres #}
 <form method="GET" action="{{ url_for('main.admin_export') }}" id="formExport">
 
-<div class="export-layout">
+{# row g-4 : grille Bootstrap 2 colonnes avec espacement de 1.5rem #}
+<div class="row g-4">
 
-    {# ── Colonne gauche : filtres ───────────────────────────── #}
-    <div class="card">
-        <h3 style="font-size:1rem;font-weight:700;color:var(--navy);margin:0 0 1.25rem">
-            🔍 Filtres
-        </h3>
+    {# ── Colonne gauche : filtres ──────────────────────────── #}
+    {# col-md-5 : occupe 5/12 colonnes sur écran moyen et grand #}
+    <div class="col-md-5">
+        <div class="card h-100">
+            <div class="card-body">
 
-        <div class="form-section">
-            <label for="activite_id">Activité</label>
-            <select name="activite_id" id="activite_id" onchange="this.form.submit()">
-                <option value="">— Toutes les activités —</option>
-                {% for a in activites_dispo %}
-                <option value="{{ a.id }}"
-                    {% if filtres.activite_id == a.id|string %}selected{% endif %}>
-                    {{ a.titre }} ({{ a.date_limite_paiement }})
-                </option>
-                {% endfor %}
-            </select>
-        </div>
+                {# Titre de la section filtres #}
+                <h3 class="fw-bold mb-3" style="font-size:1rem;color:var(--navy)">
+                    <i class="bi bi-funnel"></i> Filtres
+                </h3>
 
-        <div class="form-section">
-            <label for="classe">Classe</label>
-            <select name="classe" id="classe" onchange="this.form.submit()">
-                <option value="">— Toutes les classes —</option>
-                {% for c in classes_dispo %}
-                <option value="{{ c }}"
-                    {% if filtres.classe == c %}selected{% endif %}>
-                    {{ c }}
-                </option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <div class="form-section">
-            <label for="statut">Statut</label>
-            <select name="statut" id="statut" onchange="this.form.submit()">
-                <option value="paye"       {% if filtres.statut == 'paye' %}selected{% endif %}>Payés uniquement</option>
-                <option value="tous"       {% if filtres.statut == 'tous' %}selected{% endif %}>Tous (payés + en attente)</option>
-                <option value="en_attente" {% if filtres.statut == 'en_attente' %}selected{% endif %}>En attente uniquement</option>
-            </select>
-        </div>
-
-        <div class="form-section">
-            <label>Période (date de validation)</label>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
-                <div>
-                    <input type="date" name="date_debut" value="{{ filtres.date_debut }}">
-                    <p class="hint">Du</p>
+                <!-- Filtre par activité -->
+                <div class="mb-3">
+                    <label for="activite_id" class="form-label fw-semibold small" style="color:var(--navy)">
+                        Activité
+                    </label>
+                    {# onchange="this.form.submit()" : soumet le formulaire dès qu'on change la valeur #}
+                    {# Évite d'avoir à cliquer sur "Actualiser" après chaque filtre #}
+                    <select name="activite_id" id="activite_id"
+                            class="form-select"
+                            onchange="this.form.submit()">
+                        <option value="">— Toutes les activités —</option>
+                        {% for a in activites_dispo %}
+                        {# selected : pré-sélectionne l'option correspondant au filtre actif #}
+                        <option value="{{ a.id }}"
+                            {% if filtres.activite_id == a.id|string %}selected{% endif %}>
+                            {{ a.titre }} ({{ a.date_limite_paiement }})
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
-                <div>
-                    <input type="date" name="date_fin" value="{{ filtres.date_fin }}">
-                    <p class="hint">Au</p>
+
+                <!-- Filtre par classe -->
+                <div class="mb-3">
+                    <label for="classe" class="form-label fw-semibold small" style="color:var(--navy)">
+                        Classe
+                    </label>
+                    <select name="classe" id="classe"
+                            class="form-select"
+                            onchange="this.form.submit()">
+                        <option value="">— Toutes les classes —</option>
+                        {% for c in classes_dispo %}
+                        <option value="{{ c }}"
+                            {% if filtres.classe == c %}selected{% endif %}>
+                            {{ c }}
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
-            </div>
-        </div>
 
-        <div style="display:flex;gap:0.75rem;align-items:center;margin-top:0.5rem">
-            <button type="submit" class="btn btn-light">Actualiser l'aperçu</button>
-            <a href="{{ url_for('main.admin_export') }}" class="btn btn-light"
-               style="font-size:0.82rem;color:var(--slate)">Réinitialiser</a>
-        </div>
+                <!-- Filtre par statut -->
+                <div class="mb-3">
+                    <label for="statut" class="form-label fw-semibold small" style="color:var(--navy)">
+                        Statut
+                    </label>
+                    <select name="statut" id="statut"
+                            class="form-select"
+                            onchange="this.form.submit()">
+                        <option value="paye"
+                            {% if filtres.statut == 'paye' %}selected{% endif %}>
+                            Payés uniquement
+                        </option>
+                        <option value="tous"
+                            {% if filtres.statut == 'tous' %}selected{% endif %}>
+                            Tous (payés + en attente)
+                        </option>
+                        <option value="en_attente"
+                            {% if filtres.statut == 'en_attente' %}selected{% endif %}>
+                            En attente uniquement
+                        </option>
+                    </select>
+                </div>
 
-        <div class="csv-columns">
-            <h4>Colonnes du fichier CSV</h4>
-            <div class="col-list">
-                 <span class="col-tag">activite</span>
-    <span class="col-tag">classe</span>
-                <span class="col-tag">nom_eleve</span>
-                <span class="col-tag">prenom_eleve</span>
-                <span class="col-tag">matricule_fase</span>
-                <span class="col-tag">option</span>
-                <span class="col-tag">statut</span>
-                <span class="col-tag">montant</span>
-                <span class="col-tag">reference</span>
-                <span class="col-tag">date_validation</span>
-                <span class="col-tag">mode_paiement</span>
+                <!-- Filtre par période -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small" style="color:var(--navy)">
+                        Période (date de validation)
+                    </label>
+                    {# row g-2 : deux champs date côte à côte avec petit espacement #}
+                    <div class="row g-2">
+                        <div class="col-6">
+                            {# form-control : style Bootstrap pour les inputs #}
+                            <input type="date" name="date_debut"
+                                   class="form-control form-control-sm"
+                                   value="{{ filtres.date_debut }}">
+                            <small class="text-muted">Du</small>
+                        </div>
+                        <div class="col-6">
+                            <input type="date" name="date_fin"
+                                   class="form-control form-control-sm"
+                                   value="{{ filtres.date_fin }}">
+                            <small class="text-muted">Au</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Boutons Actualiser / Réinitialiser -->
+                <div class="d-flex gap-2 mb-4">
+                    {# type="submit" : soumet le formulaire avec les filtres actuels #}
+                    <button type="submit" class="btn btn-navy btn-sm">
+                        <i class="bi bi-arrow-clockwise"></i> Actualiser
+                    </button>
+                    {# Lien sans paramètres : réinitialise tous les filtres #}
+                    <a href="{{ url_for('main.admin_export') }}"
+                       class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-x-circle"></i> Réinitialiser
+                    </a>
+                </div>
+
+                <!-- Colonnes du fichier CSV -->
+                {# Informational box : montre à l'utilisateur les colonnes du CSV généré #}
+                <div class="csv-columns">
+                    <h4>Colonnes du fichier CSV</h4>
+                    <div class="col-list">
+                        <span class="col-tag">activite</span>
+                        <span class="col-tag">classe</span>
+                        <span class="col-tag">nom_eleve</span>
+                        <span class="col-tag">prenom_eleve</span>
+                        <span class="col-tag">matricule_fase</span>
+                        <span class="col-tag">option</span>
+                        <span class="col-tag">statut</span>
+                        <span class="col-tag">montant</span>
+                        <span class="col-tag">reference</span>
+                        <span class="col-tag">date_validation</span>
+                        <span class="col-tag">mode_paiement</span>
+                    </div>
+                    <p class="text-muted small mt-2">Trié par activité → classe → nom élève</p>
+                </div>
+
             </div>
-            <p class="hint" style="margin-top:0.6rem">Trié par activité → classe → nom élève</p>
         </div>
     </div>
 
     {# ── Colonne droite : aperçu + boutons export ──────────── #}
-    <div>
+    {# col-md-7 : occupe 7/12 colonnes = plus large que la colonne filtres #}
+    <div class="col-md-7">
 
-        {# Aperçu du tableau #}
-        <div class="preview-card">
+        <!-- Aperçu du tableau -->
+        <div class="preview-card mb-3">
             <div class="preview-header">
                 <h3>Aperçu</h3>
+                {# lignes|length : filtre Jinja2 qui compte les éléments de la liste #}
                 <span class="preview-count">{{ lignes|length }} ligne(s)</span>
             </div>
 
             {% if lignes %}
+            {# overflow-x:auto : scroll horizontal si le tableau est trop large sur mobile #}
             <div style="overflow-x:auto">
                 <table class="preview-table">
                     <thead>
@@ -123,6 +182,8 @@
                         </tr>
                     </thead>
                     <tbody>
+                        {# lignes[:20] : affiche max 20 lignes dans l'aperçu #}
+                        {# Le fichier CSV complet contiendra toutes les lignes #}
                         {% for l in lignes[:20] %}
                         <tr>
                             <td>{{ l.activite.titre }}</td>
@@ -137,15 +198,18 @@
                             </td>
                             <td>{{ l.montant_attendu }} €</td>
                             <td>
+                                {# Affiche la date de validation si elle existe, sinon "—" #}
                                 {% if l.paiements %}
                                     {{ l.paiements[0].paye_le.strftime('%d/%m/%Y') if l.paiements[0].paye_le else '—' }}
                                 {% else %}—{% endif %}
                             </td>
                         </tr>
                         {% endfor %}
+
+                        {# Message si plus de 20 lignes : informe que le CSV est complet #}
                         {% if lignes|length > 20 %}
                         <tr>
-                            <td colspan="6" style="text-align:center;color:var(--slate);font-style:italic;padding:0.75rem">
+                            <td colspan="6" class="text-center text-muted fst-italic py-2">
                                 … et {{ lignes|length - 20 }} ligne(s) supplémentaire(s) dans le fichier complet
                             </td>
                         </tr>
@@ -158,9 +222,11 @@
             {% endif %}
         </div>
 
-        {# Bouton export CSV #}
-        <div style="margin-top:1.25rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+        <!-- Bouton export CSV -->
+        <div class="d-flex align-items-center gap-3 flex-wrap mb-3">
             {% if lignes %}
+            {# url_for avec paramètres : transmet les filtres actifs à la route d'export CSV #}
+            {# La route génère le fichier et le retourne en téléchargement direct #}
             <a href="{{ url_for('main.admin_export_csv',
                         activite_id=filtres.activite_id,
                         classe=filtres.classe,
@@ -168,20 +234,29 @@
                         date_debut=filtres.date_debut,
                         date_fin=filtres.date_fin) }}"
                class="btn-export">
-                ⬇ Télécharger le CSV ({{ lignes|length }} ligne(s))
+                <i class="bi bi-download"></i> Télécharger le CSV ({{ lignes|length }} ligne(s))
             </a>
             {% else %}
-            <button class="btn-export" disabled>⬇ Télécharger le CSV</button>
+            {# disabled : bouton grisé et non cliquable si aucun résultat #}
+            <button class="btn-export" disabled>
+                <i class="bi bi-download"></i> Télécharger le CSV
+            </button>
             {% endif %}
-            <span style="font-size:0.8rem;color:var(--slate)">Encodage UTF-8, séparateur virgule</span>
+            <span class="text-muted small">Encodage UTF-8, séparateur virgule</span>
         </div>
 
-        {# ── Section Export Bob50 ──────────────────────────── #}
+        <!-- Section Export Bob50 -->
         <div class="bob50-card">
-            <h3>🏦 Export vers Bob50</h3>
+            <h3>
+                <i class="bi bi-bank"></i> Export vers Bob50
+            </h3>
 
+            {# Zone d'avertissement : l'export Bob50 est irréversible #}
             <div class="bob50-info">
-                <strong>⚠️ Attention — cet export est irréversible</strong>
+                <strong>
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Attention — cet export est irréversible
+                </strong>
                 Seuls les paiements <strong>validés et pas encore exportés</strong>
                 sont inclus. Une fois exportés, ils sont marqués comme traités
                 et n'apparaîtront plus dans le prochain export Bob50.
@@ -189,18 +264,19 @@
                 il prend toujours <strong>tous les paiements non encore exportés</strong>.
             </div>
 
-            <p style="font-size:0.85rem;color:var(--slate);margin-bottom:1rem">
+            <p class="text-muted small mb-3">
+                {# code : balise HTML pour afficher du texte en police monospace #}
                 Génère un fichier ZIP contenant <code>HFac.dbf</code> et <code>Lfac.dbf</code>
                 prêts à importer directement dans Bob50.
             </p>
 
+            {# btn-bob50 : notre classe CSS dans style.css (fond amber) #}
             <a href="{{ url_for('main.admin_export_bob50') }}" class="btn-bob50">
-                📦 Générer l'export Bob50 (ZIP)
+                <i class="bi bi-file-zip"></i> Générer l'export Bob50 (ZIP)
             </a>
         </div>
 
     </div>
-
 </div>
 </form>
 

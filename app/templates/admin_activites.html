@@ -6,15 +6,19 @@
 {% block page_subtitle %}Liste de toutes les activités et leur taux de paiement.{% endblock %}
 
 {% block topbar_actions %}
-<a href="{{ url_for('main.admin_nouvelle_activite') }}" class="btn btn-amber">+ Nouvelle activité</a>
-<a href="{{ url_for('main.admin_dashboard') }}" class="btn btn-light">← Tableau de bord</a>
+<a href="{{ url_for('main.admin_nouvelle_activite') }}" class="btn btn-amber">
+    <i class="bi bi-plus-circle"></i> Nouvelle activité
+</a>
+<a href="{{ url_for('main.admin_dashboard') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Tableau de bord
+</a>
 {% endblock %}
 
 {% block content %}
 
 {% if activites %}
 <div class="card">
-    <table>
+    <table class="table table-hover">
         <thead>
             <tr>
                 <th>Titre</th>
@@ -75,9 +79,9 @@
     <p style="color:var(--slate);margin-bottom:1rem">
         Aucune activité créée pour le moment.
     </p>
-    <a href="{{ url_for('main.admin_nouvelle_activite') }}" class="btn btn-primary">
-        Créer la première activité
-    </a>
+    <a href="{{ url_for('main.admin_nouvelle_activite') }}" class="btn btn-navy">
+    <i class="bi bi-plus-circle"></i> Créer la première activité
+</a>
 </div>
 {% endif %}
 

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{# Hérite de base.html : sidebar, topbar, flash messages inclus automatiquement #}
 
 {% block title %}Suivi des paiements — Admin CNDK{% endblock %}
 {% block eyebrow %}Administration — Paiements{% endblock %}
@@ -6,56 +7,97 @@
 {% block page_subtitle %}Validation manuelle des paiements et suivi administratif.{% endblock %}
 
 {% block topbar_actions %}
-<a href="{{ url_for('main.admin_dashboard') }}" class="btn btn-light">← Tableau de bord</a>
+{# btn-outline-secondary : bouton Bootstrap avec bordure grise #}
+<a href="{{ url_for('main.admin_dashboard') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Tableau de bord
+</a>
 {% endblock %}
 
 {% block content %}
 
 {% if lignes %}
+{# card : bloc blanc avec ombre légère défini dans style.css #}
+{# p-0 : supprime le padding Bootstrap par défaut pour que le tableau soit bien cadré #}
 <div class="card">
-    <table>
-        <thead>
-            <tr>
-                <th>Élève</th>
-                <th>Activité</th>
-                <th>Montant</th>
-                <th>Statut</th>
-                <th>Action comptable</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for ligne in lignes %}
-            <tr>
-                <td>{{ ligne.eleve.prenom }} {{ ligne.eleve.nom }}</td>
-                <td>{{ ligne.activite.titre }}</td>
-                <td>{{ ligne.montant_attendu }} €</td>
-                <td>
-                    {% if ligne.statut == "paye" %}
-                        <span class="badge badge-success">Payé</span>
-                    {% else %}
-                        <span class="badge badge-warning">En attente</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if ligne.statut != "paye" %}
-                    <form action="{{ url_for('main.admin_marquer_paye', activite_eleve_id=ligne.id) }}"
-                          method="POST" style="display:inline">
-                        <button type="submit" class="btn btn-primary">
-                            Marquer comme payé
-                        </button>
-                    </form>
-                    {% else %}
-                        <span class="muted">Déjà validé</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="card-body p-0">
+
+        {# table : classe Bootstrap qui ajoute le padding et la mise en forme #}
+        {# table-hover : ajoute un effet de survol sur les lignes #}
+        {# mb-0 : supprime la marge du bas du tableau (évite un espace vide sous la card) #}
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Élève</th>
+                    <th>Activité</th>
+                    <th>Montant</th>
+                    <th>Statut</th>
+                    <th>Action comptable</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ligne in lignes %}
+                {# Chaque ligne représente un objet ActiviteEleve avec ses relations #}
+                {# ligne.eleve, ligne.activite : relations SQLAlchemy chargées automatiquement #}
+                <tr>
+                    <td>{{ ligne.eleve.prenom }} {{ ligne.eleve.nom }}</td>
+                    <td>{{ ligne.activite.titre }}</td>
+                    <td>{{ ligne.montant_attendu }} €</td>
+
+                    {# Badge de statut coloré #}
+                    <td>
+                        {% if ligne.statut == "paye" %}
+                            {# badge-success : notre classe CSS dans style.css (fond vert) #}
+                            <span class="badge badge-success">Payé</span>
+                        {% else %}
+                            {# badge-warning : notre classe CSS dans style.css (fond orange) #}
+                            <span class="badge badge-warning">En attente</span>
+                        {% endif %}
+                    </td>
+
+                    {# Action : bouton de validation ou message "Déjà validé" #}
+                    <td>
+                        {% if ligne.statut != "paye" %}
+
+                        {# Formulaire POST individuel par ligne #}
+                        {# Chaque bouton soumet son propre formulaire vers la route de validation #}
+                        {# activite_eleve_id=ligne.id : identifie quelle ligne valider #}
+                        {# style="display:inline" : évite que le formulaire crée un saut de ligne #}
+                        <form action="{{ url_for('main.admin_marquer_paye', activite_eleve_id=ligne.id) }}"
+                              method="POST" style="display:inline">
+
+                            {# Pas de form.hidden_tag() ici car on n'utilise pas WTForms #}
+                            {# TODO : ajouter une protection CSRF manuelle si nécessaire #}
+
+                            {# btn-navy : notre classe CSS (fond navy) #}
+                            <button type="submit" class="btn btn-navy btn-sm">
+                                <i class="bi bi-check-circle"></i> Marquer comme payé
+                            </button>
+                        </form>
+
+                        {% else %}
+                            {# text-muted : texte grisé Bootstrap #}
+                            <span class="text-muted small">
+                                <i class="bi bi-check2-all"></i> Déjà validé
+                            </span>
+                        {% endif %}
+                    </td>
+
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
 </div>
+
 {% else %}
+{# Message affiché si aucun paiement n'existe dans la base #}
 <div class="card">
-    <p style="color:var(--slate)">Aucun paiement à traiter.</p>
+    <div class="card-body">
+        <p class="text-muted mb-0">
+            <i class="bi bi-info-circle"></i> Aucun paiement à traiter.
+        </p>
+    </div>
 </div>
 {% endif %}
 

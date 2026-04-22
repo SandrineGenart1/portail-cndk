@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{# Hérite de base.html : sidebar, topbar, flash messages inclus automatiquement #}
 
 {% block title %}Paiement — {{ ae.activite.titre }}{% endblock %}
 {% block eyebrow %}Espace parent — Paiement{% endblock %}
@@ -6,51 +7,87 @@
 {% block page_subtitle %}Scannez le QR code avec votre app bancaire pour effectuer le virement.{% endblock %}
 
 {% block topbar_actions %}
-<a href="{{ url_for('main.index') }}" class="btn btn-light">← Retour</a>
-{% endblock %}
-
-{% block extra_css %}
-
+{# btn-outline-secondary : bouton Bootstrap avec bordure grise #}
+<a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Retour
+</a>
 {% endblock %}
 
 {% block content %}
 
-{# Bandeau date limite #}
+{# Bandeau date limite : avertissement orange avec date et montant #}
+{# statut-banner : notre classe CSS dans style.css (fond jaune pâle, bordure amber) #}
 <div class="statut-banner">
-    ⏳ Paiement attendu avant le
+    <i class="bi bi-hourglass-split"></i>
+    Paiement attendu avant le
+    {# date-limite : texte rouge gras défini dans style.css #}
+    {# strftime('%d/%m/%Y') : formate la date en jour/mois/année (ex: 15/06/2025) #}
     <span class="date-limite">{{ ae.activite.date_limite_paiement.strftime('%d/%m/%Y') }}</span>
     — montant : <strong>{{ ae.montant_attendu }} €</strong>
 </div>
 
-<div class="paiement-layout">
+{# row g-4 : grille Bootstrap 2 colonnes avec espacement de 1.5rem #}
+{# Remplace l'ancien paiement-layout (grid CSS personnalisé) #}
+<div class="row g-4">
 
-    {# ── Colonne QR code ──────────────────────────────────── #}
-    <div class="qr-card">
-        <p class="qr-label">Scannez pour payer</p>
+    {# ── Colonne gauche : QR code ──────────────────────────── #}
+    {# col-md-5 : occupe 5/12 colonnes sur écran moyen et grand #}
+    <div class="col-md-5">
 
-        <img src="data:image/png;base64,{{ qr_b64 }}"
-             alt="QR code paiement {{ ae.activite.titre }}"
-             id="qrImg">
+        {# qr-card : notre classe CSS dans style.css #}
+        {# Bloc centré avec bordure arrondie pour le QR code #}
+        <div class="qr-card">
 
-        <div class="qr-amount">{{ ae.montant_attendu }} €</div>
-        <div class="qr-activity">{{ ae.activite.titre }} — {{ ae.eleve.prenom }} {{ ae.eleve.nom }}</div>
+            {# qr-label : petit texte en uppercase au-dessus du QR code #}
+            <p class="qr-label">Scannez pour payer</p>
 
-        <div class="qr-reference">{{ reference }}</div>
+            {# Image QR code encodée en base64 #}
+            {# data:image/png;base64 : format inline, pas besoin de fichier séparé #}
+            {# qr_b64 : chaîne base64 générée par qr_service.py et envoyée par routes.py #}
+            <img src="data:image/png;base64,{{ qr_b64 }}"
+                 alt="QR code paiement {{ ae.activite.titre }}"
+                 id="qrImg">
 
-        <br>
-        <a href="{{ url_for('main.qrcode_image', activite_eleve_id=ae.id) }}"
-           download="paiement_{{ ae.id }}.png"
-           class="btn-download">
-            ⬇ Télécharger le QR code
-        </a>
+            {# Montant en grand sous le QR code #}
+            <div class="qr-amount">{{ ae.montant_attendu }} €</div>
+
+            {# Titre de l'activité et nom de l'élève #}
+            <div class="qr-activity">
+                {{ ae.activite.titre }} — {{ ae.eleve.prenom }} {{ ae.eleve.nom }}
+            </div>
+
+            {# Référence structurée du virement (communication) #}
+            {# qr-reference : police monospace, fond grisé, défini dans style.css #}
+            <div class="qr-reference">{{ reference }}</div>
+
+            <br>
+
+            {# Lien de téléchargement du QR code en PNG #}
+            {# download="..." : force le téléchargement au lieu d'ouvrir dans le navigateur #}
+            {# La route qrcode_image génère et retourne l'image PNG #}
+            <a href="{{ url_for('main.qrcode_image', activite_eleve_id=ae.id) }}"
+               download="paiement_{{ ae.id }}.png"
+               class="btn-download">
+                <i class="bi bi-download"></i> Télécharger le QR code
+            </a>
+        </div>
     </div>
 
-    {# ── Colonne instructions + données virement ──────────── #}
-    <div>
+    {# ── Colonne droite : instructions + données virement ──── #}
+    {# col-md-7 : occupe 7/12 colonnes = plus large que la colonne QR #}
+    <div class="col-md-7">
         <div class="instructions-card">
-            <h3>📱 Comment payer avec le QR code</h3>
 
+            {# Titre section instructions QR code #}
+            <h3>
+                <i class="bi bi-phone"></i> Comment payer avec le QR code
+            </h3>
+
+            {# Étapes numérotées : step + step-number + step-text définis dans style.css #}
+
+            {# Étape 1 #}
             <div class="step">
+                {# step-number : cercle navy avec le numéro #}
                 <div class="step-number">1</div>
                 <div class="step-text">
                     <strong>Ouvrez votre app bancaire</strong>
@@ -59,6 +96,7 @@
                 </div>
             </div>
 
+            {# Étape 2 #}
             <div class="step">
                 <div class="step-number">2</div>
                 <div class="step-text">
@@ -68,6 +106,7 @@
                 </div>
             </div>
 
+            {# Étape 3 #}
             <div class="step">
                 <div class="step-number">3</div>
                 <div class="step-text">
@@ -77,37 +116,55 @@
                 </div>
             </div>
 
+            {# Ligne de séparation entre les deux sections #}
+            {# divider : notre classe CSS dans style.css (ligne grise) #}
             <div class="divider"></div>
 
-            <h3>🏦 Ou effectuez un virement manuel</h3>
-            <p style="font-size:0.82rem;color:var(--slate);margin-bottom:0.9rem">
+            {# Titre section virement manuel #}
+            <h3>
+                <i class="bi bi-bank"></i> Ou effectuez un virement manuel
+            </h3>
+            <p class="text-muted small mb-3">
                 Si vous préférez encoder le virement manuellement :
             </p>
 
+            {# Tableau des données de virement #}
+            {# virement-data : notre classe CSS dans style.css (fond grisé, bordures) #}
             <div class="virement-data">
+
+                {# Chaque virement-row : une ligne label + valeur #}
                 <div class="virement-row">
                     <span class="virement-label">Bénéficiaire</span>
+                    {# ecole_nom : chargé depuis la variable d'environnement NOM_BENEFICIAIRE #}
                     <span class="virement-value">{{ ecole_nom }}</span>
-                    
                 </div>
+
                 <div class="virement-row">
                     <span class="virement-label">IBAN</span>
+                    {# ecole_iban : chargé depuis la variable d'environnement IBAN #}
                     <span class="virement-value">{{ ecole_iban }}</span>
                 </div>
+
                 <div class="virement-row">
                     <span class="virement-label">Montant</span>
                     <span class="virement-value">{{ ae.montant_attendu }} €</span>
                 </div>
+
                 <div class="virement-row">
                     <span class="virement-label">Communication</span>
+                    {# virement-value ref : police monospace + couleur amber pour la référence #}
+                    {# La communication structurée est indispensable pour identifier le paiement #}
                     <span class="virement-value ref">{{ reference }}</span>
                 </div>
             </div>
 
-            <p style="font-size:0.78rem;color:var(--slate);margin-top:0.75rem">
-                ⚠️ La communication structurée est indispensable pour identifier
+            {# Avertissement : ne pas modifier la communication structurée #}
+            <p class="text-muted small mt-2">
+                <i class="bi bi-exclamation-triangle text-warning"></i>
+                La communication structurée est indispensable pour identifier
                 votre paiement. Ne la modifiez pas.
             </p>
+
         </div>
     </div>
 

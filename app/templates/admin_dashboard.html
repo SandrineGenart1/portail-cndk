@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{# Hérite de base.html : sidebar, topbar, flash messages inclus automatiquement #}
 
 {% block title %}Tableau de bord — Admin CNDK{% endblock %}
 {% block eyebrow %}Administration{% endblock %}
@@ -7,37 +8,66 @@
 
 {% block content %}
 
+{# ── Section statistiques ─────────────────────────────────── #}
+{# section-label : petit titre en uppercase défini dans style.css #}
 <p class="section-label">Vue d'ensemble</p>
+
+{# stats-row : grille CSS dans style.css #}
+{# Affiche les 4 cards de statistiques côte à côte (auto-fill, min 180px) #}
 <div class="stats-row">
+
+    {# stat-card : bloc blanc avec bordure et ombre légère (style.css) #}
     <div class="stat-card">
+        {# stat-label : texte grisé en uppercase, petite taille #}
         <div class="stat-label">Activités ouvertes</div>
+        {# stat-value : grand chiffre en navy — valeur envoyée par routes.py #}
+        {# stats est un dictionnaire Python : stats = {"nb_activites_ouvertes": 5, ...} #}
         <div class="stat-value">{{ stats.nb_activites_ouvertes }}</div>
+        {# stat-sub : texte descriptif grisé sous le chiffre #}
         <div class="stat-sub">en cours de paiement</div>
     </div>
+
     <div class="stat-card">
         <div class="stat-label">Paiements en attente</div>
+        {# style inline : couleur amber pour alerter visuellement sur les impayés #}
         <div class="stat-value" style="color:var(--amber)">{{ stats.nb_en_attente }}</div>
         <div class="stat-sub">élèves à relancer</div>
     </div>
+
     <div class="stat-card">
         <div class="stat-label">Paiements reçus</div>
+        {# style inline : couleur verte pour les bonnes nouvelles #}
         <div class="stat-value" style="color:var(--green)">{{ stats.nb_payes }}</div>
         <div class="stat-sub">ce mois-ci</div>
     </div>
+
     <div class="stat-card">
         <div class="stat-label">Montant encaissé</div>
         <div class="stat-value" style="color:var(--green)">{{ stats.montant_encaisse }} €</div>
         <div class="stat-sub">ce mois-ci</div>
     </div>
+
 </div>
 
+{# ── Section accès rapides ─────────────────────────────────── #}
 <p class="section-label" style="margin-top:1.5rem">Accès rapides</p>
+
+{# tiles-grid : grille CSS dans style.css #}
+{# Affiche les tiles en colonnes automatiques (auto-fill, min 240px) #}
 <div class="tiles-grid">
 
+    {# ── Tiles actives ──────────────────────────────────────── #}
+
+    {# tile : carte cliquable avec hover animé (style.css) #}
+    {# tile-navy : couleur de la barre supérieure et du tile-arrow (--tile-color: navy) #}
     <a href="{{ url_for('main.admin_importer_eleves') }}" class="tile tile-navy">
+        {# tile-icon : carré arrondi avec fond coloré contenant l'icône Bootstrap Icons #}
         <div class="tile-icon"><i class="bi bi-upload"></i></div>
+        {# tile-title : titre en gras de la tile #}
         <div class="tile-title">Importer les élèves</div>
+        {# tile-desc : description courte en grisé #}
         <div class="tile-desc">Importez la liste depuis un CSV ProEco en début d'année (classes, options, année scolaire).</div>
+        {# tile-arrow : texte cliquable en bas de la tile, coloré selon tile-color #}
         <div class="tile-arrow">Importer →</div>
     </a>
 
@@ -55,6 +85,7 @@
         <div class="tile-arrow">Créer →</div>
     </a>
 
+    {# tile-green : barre supérieure et tile-arrow en vert (--tile-color: green) #}
     <a href="{{ url_for('main.admin_paiements') }}" class="tile tile-green">
         <div class="tile-icon"><i class="bi bi-cash-coin"></i></div>
         <div class="tile-title">Suivi des paiements</div>
@@ -62,6 +93,7 @@
         <div class="tile-arrow">Voir les paiements →</div>
     </a>
 
+    {# tile-purple : barre supérieure et tile-arrow en violet (--tile-color: purple) #}
     <a href="{{ url_for('main.admin_export') }}" class="tile tile-purple">
         <div class="tile-icon"><i class="bi bi-box-arrow-up"></i></div>
         <div class="tile-title">Exporter les paiements</div>
@@ -69,10 +101,15 @@
         <div class="tile-arrow">Exporter →</div>
     </a>
 
+    {# ── Tiles désactivées (fonctionnalités futures) ─────────── #}
+
+    {# tile-soon : opacité réduite + cursor:default (style.css) #}
+    {# href="#" : lien vide, ne navigue pas #}
     <a href="#" class="tile tile-amber tile-soon">
         <div class="tile-icon"><i class="bi bi-calendar3"></i></div>
         <div class="tile-title">Calendrier des repas</div>
         <div class="tile-desc">Définissez les jours avec repas, les menus et les options disponibles.</div>
+        {# Couleur grisée pour indiquer que la fonctionnalité n'est pas encore disponible #}
         <div class="tile-arrow" style="color:var(--slate)">Bientôt disponible</div>
     </a>
 

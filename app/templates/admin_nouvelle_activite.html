@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{# Hérite de base.html : sidebar, topbar, flash messages sont automatiquement inclus #}
 
 {% block title %}Nouvelle activité — Admin CNDK{% endblock %}
 {% block eyebrow %}Administration — Activités{% endblock %}
@@ -6,209 +7,170 @@
 {% block page_subtitle %}Créez une activité et affectez-la aux classes concernées.{% endblock %}
 
 {% block topbar_actions %}
-<a href="{{ url_for('main.admin_activites') }}" class="btn btn-light">← Retour aux activités</a>
-{% endblock %}
-
-{% block extra_css %}
-<style>
-    .form-section {
-        margin-bottom: 1.5rem;
-    }
-
-    .form-section label {
-        display: block;
-        font-weight: 600;
-        margin-bottom: 0.4rem;
-        color: var(--navy);
-    }
-
-    .form-section input[type="text"],
-    .form-section input[type="number"],
-    .form-section input[type="date"],
-    .form-section textarea {
-        width: 100%;
-        padding: 0.6rem 0.8rem;
-        border: 1px solid #CBD5E1;
-        border-radius: 6px;
-        font-size: 1rem;
-        font-family: inherit;
-        box-sizing: border-box;
-    }
-
-    .form-section textarea {
-        min-height: 80px;
-        resize: vertical;
-    }
-
-    .form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-    }
-
-    .classes-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-        gap: 0.5rem;
-        margin-top: 0.5rem;
-    }
-
-    .classe-checkbox {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: #F0F9FF;
-        border: 1px solid #BAE6FD;
-        border-radius: 6px;
-        padding: 0.5rem 0.8rem;
-        cursor: pointer;
-        transition: background 0.15s;
-    }
-
-    .classe-checkbox:hover {
-        background: #E0F2FE;
-    }
-
-    .classe-checkbox input[type="checkbox"] {
-        accent-color: var(--navy);
-        width: 16px;
-        height: 16px;
-    }
-
-    .classe-checkbox.checked {
-        background: var(--navy);
-        color: white;
-        border-color: var(--navy);
-    }
-
-    .btn-selectionner-tout {
-        background: none;
-        border: 1px solid var(--navy);
-        color: var(--navy);
-        padding: 0.3rem 0.8rem;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.85rem;
-        margin-bottom: 0.5rem;
-    }
-
-    .btn-selectionner-tout:hover {
-        background: var(--navy);
-        color: white;
-    }
-
-    .form-actions {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
-        margin-top: 2rem;
-    }
-
-    .hint {
-        font-size: 0.85rem;
-        color: var(--slate);
-        margin-top: 0.3rem;
-    }
-
-    .obligatoire-toggle {
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-    }
-
-    .obligatoire-toggle input[type="checkbox"] {
-        accent-color: var(--amber);
-        width: 18px;
-        height: 18px;
-    }
-
-    .recap-box {
-        background: #F0FFF4;
-        border: 1px solid #86EFAC;
-        border-radius: 6px;
-        padding: 0.8rem 1rem;
-        margin-top: 0.5rem;
-        display: none;
-    }
-
-    @media (max-width: 768px) {
-        .form-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-</style>
+{# Bouton affiché en haut à droite de la topbar #}
+{# btn-outline-secondary : bouton Bootstrap avec bordure grise, sans fond #}
+<a href="{{ url_for('main.admin_activites') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Retour aux activités
+</a>
 {% endblock %}
 
 {% block content %}
 
+{# card : bloc blanc avec ombre légère défini dans style.css #}
+{# card-body : padding interne Bootstrap (1.5rem de chaque côté) #}
 <div class="card">
+    <div class="card-body">
+
+    {# Formulaire POST : envoie les données à la route admin_nouvelle_activite #}
+    {# method="POST" : les données passent dans le corps de la requête (invisible dans l'URL) #}
     <form action="{{ url_for('main.admin_nouvelle_activite') }}" method="POST">
-        {{ form.hidden_tag() }}  {# Token CSRF généré par Flask-WTF #}
-        <div class="form-section">
-            <label for="titre">Titre de l'activité *</label>
+
+        {# Token CSRF généré par Flask-WTF #}
+        {# Protège contre les soumissions frauduleuses depuis un site tiers #}
+        {# Sans ce token, Flask rejettera le formulaire avec une erreur 400 #}
+        {{ form.hidden_tag() }}
+
+        <!-- ── Titre ──────────────────────────────────────────── -->
+        {# mb-3 : margin-bottom de 1rem (Bootstrap spacing utility) #}
+        <div class="mb-3">
+            {# form-label : style Bootstrap pour les labels de formulaire #}
+            {# fw-semibold : font-weight semi-bold (Bootstrap) #}
+            {# text-navy : notre classe personnalisée dans style.css #}
+            <label for="titre" class="form-label fw-semibold" style="color:var(--navy)">
+                Titre de l'activité *
+            </label>
+
+            {# form-control : classe Bootstrap qui stylise les inputs #}
+            {# Ajoute bordure, padding, focus bleu, border-radius #}
+            {# value : pré-remplit le champ si le formulaire a déjà été soumis avec erreur #}
+            {# form.titre.data : valeur saisie précédemment, conservée par WTForms #}
             <input type="text" id="titre" name="titre"
-           placeholder="Ex : Voyage à Paris, Théâtre, Photo de classe…"
-           value="{{ form.titre.data or '' }}"
-           required>
+                   class="form-control"
+                   placeholder="Ex : Voyage à Paris, Théâtre, Photo de classe…"
+                   value="{{ form.titre.data or '' }}"
+                   required>
+
+            {# Affichage des erreurs WTForms sous le champ #}
+            {# form.titre.errors : liste des messages d'erreur pour ce champ #}
+            {# text-danger : texte rouge Bootstrap #}
+            {# small : texte plus petit Bootstrap #}
             {% for erreur in form.titre.errors %}
-            <p style="color:red; font-size:0.85rem;">{{ erreur }}</p>
+            <div class="text-danger small mt-1">{{ erreur }}</div>
             {% endfor %}
         </div>
 
-        <div class="form-section">
-            <label for="description">
-                Description <span style="font-weight:normal;color:var(--slate)">(optionnel)</span>
+        <!-- ── Description ───────────────────────────────────── -->
+        <div class="mb-3">
+            <label for="description" class="form-label fw-semibold" style="color:var(--navy)">
+                Description
+                {# text-muted : texte grisé Bootstrap #}
+                {# fw-normal : annule le fw-semibold du parent pour ce span #}
+                <span class="fw-normal text-muted">(optionnel)</span>
             </label>
+
+            {# textarea : champ texte multiligne #}
+            {# rows="3" : hauteur initiale de 3 lignes #}
+            {# form.description.data : valeur conservée par WTForms en cas d'erreur #}
             <textarea id="description" name="description"
-          placeholder="Informations complémentaires pour les parents…">{{ form.description.data or '' }}</textarea>
+                      class="form-control"
+                      rows="3"
+                      placeholder="Informations complémentaires pour les parents…">{{ form.description.data or '' }}</textarea>
         </div>
 
-        <div class="form-grid">
-            <div class="form-section">
-                <label for="montant">Montant (€) *</label>
+        <!-- ── Montant + Date limite (côte à côte) ───────────── -->
+        {# row : conteneur de grille Bootstrap (12 colonnes) #}
+        {# g-3 : gap de 1rem entre les colonnes #}
+        {# mb-3 : marge en bas #}
+        <div class="row g-3 mb-3">
+
+            {# col-md-6 : occupe 6/12 colonnes sur écran moyen et grand = 50% de largeur #}
+            {# Sur mobile (< md), prend automatiquement 100% de largeur #}
+            <div class="col-md-6">
+                <label for="montant" class="form-label fw-semibold" style="color:var(--navy)">
+                    Montant (€) *
+                </label>
+                {# type="number" : clavier numérique sur mobile, validation navigateur #}
+                {# step="0.01" : autorise les centimes (ex : 12.50) #}
+                {# min="0.01" : empêche les montants nuls ou négatifs côté navigateur #}
                 <input type="number" id="montant" name="montant"
-                    step="0.01" min="0.01"
-                    placeholder="Ex : 12.50"
-                    value="{{ form.montant.data or '' }}"
-                    required>
+                       class="form-control"
+                       step="0.01" min="0.01"
+                       placeholder="Ex : 12.50"
+                       value="{{ form.montant.data or '' }}"
+                       required>
                 {% for erreur in form.montant.errors %}
-                <p style="color:red; font-size:0.85rem;">{{ erreur }}</p>
+                <div class="text-danger small mt-1">{{ erreur }}</div>
                 {% endfor %}
             </div>
 
-            <div class="form-section">
-                <label for="date_limite_paiement">Date limite de paiement *</label>
+            <div class="col-md-6">
+                <label for="date_limite_paiement" class="form-label fw-semibold" style="color:var(--navy)">
+                    Date limite de paiement *
+                </label>
+                {# type="date" : affiche un sélecteur de date natif dans le navigateur #}
+                {# La validation WTForms dans forms.py vérifie que la date n'est pas dans le passé #}
                 <input type="date" id="date_limite_paiement" name="date_limite_paiement"
-                 value="{{ form.date_limite_paiement.data or '' }}"
-                    required>
-                    {% for erreur in form.date_limite_paiement.errors %}
-                <p style="color:red; font-size:0.85rem;">{{ erreur }}</p>
-                 {% endfor %}
+                       class="form-control"
+                       value="{{ form.date_limite_paiement.data or '' }}"
+                       required>
+                {% for erreur in form.date_limite_paiement.errors %}
+                <div class="text-danger small mt-1">{{ erreur }}</div>
+                {% endfor %}
             </div>
         </div>
 
-        <div class="form-section">
-            <div class="obligatoire-toggle">
+        <!-- ── Activité obligatoire ───────────────────────────── -->
+        <div class="mb-3">
+            {# form-check : conteneur Bootstrap pour les cases à cocher #}
+            <div class="form-check">
+                {# form-check-input : style Bootstrap pour la case à cocher #}
+                {# accent-color géré par Bootstrap, pas besoin de CSS custom #}
                 <input type="checkbox" id="obligatoire" name="obligatoire"
-       {%           if form.obligatoire.data %}checked{% endif %}>
-                <label for="obligatoire" style="margin-bottom:0">
+                       class="form-check-input"
+                       {% if form.obligatoire.data %}checked{% endif %}>
+                       {# checked : pré-coche la case si elle était cochée avant une erreur #}
+
+                {# form-check-label : style Bootstrap pour le label d'une case à cocher #}
+                <label for="obligatoire" class="form-check-label fw-semibold" style="color:var(--navy)">
                     Activité obligatoire
-                    <span class="hint" style="display:inline">(tous les élèves des classes sélectionnées doivent payer)</span>
+                    <span class="fw-normal text-muted small">
+                        (tous les élèves des classes sélectionnées doivent payer)
+                    </span>
                 </label>
             </div>
         </div>
 
-        <div class="form-section">
-            <label>Classes concernées *</label>
-            <p class="hint">Cochez les classes dont les élèves doivent payer cette activité.</p>
+        <!-- ── Classes concernées ────────────────────────────── -->
+        <div class="mb-3">
+            <label class="form-label fw-semibold" style="color:var(--navy)">
+                Classes concernées *
+            </label>
+            {# text-muted small : texte d'aide grisé et plus petit #}
+            {# mb-2 : marge en bas de 0.5rem #}
+            <p class="text-muted small mb-2">
+                Cochez les classes dont les élèves doivent payer cette activité.
+            </p>
 
-            <button type="button" class="btn-selectionner-tout" onclick="toggleTout()">
+            {# btn-sm : bouton Bootstrap de petite taille #}
+            {# onclick="toggleTout()" : appelle la fonction JavaScript définie plus bas #}
+            <button type="button"
+                    class="btn btn-outline-secondary btn-sm mb-2"
+                    onclick="toggleTout()">
                 Tout sélectionner / désélectionner
             </button>
 
+            {# classes_dispo : liste des classes actives envoyée par Flask depuis routes.py #}
             {% if classes_dispo %}
-            <div class="classes-grid" id="classesGrid">
+
+            {# d-flex flex-wrap gap-2 : classes Bootstrap #}
+            {# d-flex = display:flex, flex-wrap = retour à la ligne si plein #}
+            {# gap-2 = espacement de 0.5rem entre les éléments #}
+            <div class="d-flex flex-wrap gap-2" id="classesGrid">
+
                 {% for classe in classes_dispo %}
+                {# classe-checkbox : notre classe CSS dans style.css #}
+                {# "checked" est ajouté si la classe était sélectionnée avant une erreur #}
+                {# request.form.getlist('classes') : récupère les classes cochées du POST précédent #}
                 <label class="classe-checkbox {% if classe in (request.form.getlist('classes') if request.method == 'POST' else []) %}checked{% endif %}"
                        id="label-{{ classe }}">
                     <input type="checkbox"
@@ -216,37 +178,63 @@
                            value="{{ classe }}"
                            {% if classe in (request.form.getlist('classes') if request.method == 'POST' else []) %}checked{% endif %}
                            onchange="updateStyle('{{ classe }}', this)">
+                           {# onchange : met à jour le style visuel et le récapitulatif #}
                     {{ classe }}
                 </label>
                 {% endfor %}
             </div>
+
             {% else %}
-            <p class="hint" style="color:var(--red)">
-                Aucune classe trouvée dans la base de données.
-                Vérifiez que des élèves actifs existent avec un champ "classe" renseigné.
+            {# Message affiché si aucun élève actif n'existe dans la base #}
+            <p class="text-danger small">
+                Aucune classe trouvée. Vérifiez que des élèves actifs existent.
             </p>
             {% endif %}
         </div>
 
-        <div id="recap" class="recap-box">
+        <!-- ── Récapitulatif des classes sélectionnées ───────── -->
+        {# Affiché dynamiquement par JavaScript quand au moins une classe est cochée #}
+        {# alert alert-success : bannière verte Bootstrap #}
+        {# style="display:none" : caché par défaut, affiché par updateRecap() en JS #}
+        <div id="recap" class="alert alert-success py-2 small" style="display:none">
             <strong>Récapitulatif :</strong>
             <span id="recap-texte"></span>
+            {# recap-texte : rempli dynamiquement par JavaScript #}
         </div>
 
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary">
-                Créer l'activité et affecter les élèves
+        <!-- ── Boutons d'action ───────────────────────────────── -->
+        {# d-flex gap-3 : flexbox avec espacement de 1rem entre les boutons #}
+        {# align-items-center : aligne verticalement le bouton et le lien Annuler #}
+        {# mt-4 : marge en haut de 1.5rem #}
+        <div class="d-flex gap-3 align-items-center mt-4">
+
+            {# btn-navy : notre classe personnalisée dans style.css (fond navy) #}
+            <button type="submit" class="btn btn-navy">
+                <i class="bi bi-check-circle"></i> Créer l'activité et affecter les élèves
             </button>
-            <a href="{{ url_for('main.admin_activites') }}" class="btn-link">Annuler</a>
+
+            {# Lien Annuler : retourne à la liste sans soumettre #}
+            {# text-decoration-none : supprime le soulignement Bootstrap #}
+            {# text-muted : couleur grisée #}
+            <a href="{{ url_for('main.admin_activites') }}" class="text-decoration-none text-muted">
+                Annuler
+            </a>
         </div>
 
     </form>
+    </div>
 </div>
 
 {% endblock %}
 
 {% block extra_js %}
 <script>
+    /**
+     * updateStyle(classe, checkbox)
+     * Met à jour l'apparence visuelle d'un label de classe.
+     * Quand la case est cochée → ajoute la classe CSS "checked" (fond navy)
+     * Quand décochée → retire la classe "checked" (fond bleu clair)
+     */
     function updateStyle(classe, checkbox) {
         const label = document.getElementById('label-' + classe);
         if (checkbox.checked) {
@@ -254,20 +242,34 @@
         } else {
             label.classList.remove('checked');
         }
-        updateRecap();
+        updateRecap(); // Met à jour le récapitulatif après chaque changement
     }
 
+    /**
+     * toggleTout()
+     * Coche ou décoche toutes les classes d'un coup.
+     * Si toutes sont cochées → décoche tout.
+     * Si au moins une est décochée → coche tout.
+     */
     function toggleTout() {
         const checkboxes = document.querySelectorAll('input[name="classes"]');
+        // every() retourne true si TOUTES les cases sont cochées
         const toutCoche = Array.from(checkboxes).every(cb => cb.checked);
         checkboxes.forEach(cb => {
-            cb.checked = !toutCoche;
-            updateStyle(cb.value, cb);
+            cb.checked = !toutCoche; // Inverse l'état actuel
+            updateStyle(cb.value, cb); // Met à jour le style visuel
         });
         updateRecap();
     }
 
+    /**
+     * updateRecap()
+     * Met à jour le récapitulatif des classes sélectionnées.
+     * Affiche "X classe(s) sélectionnée(s) : 1A, 2B, 3C"
+     * Cache le récapitulatif si aucune classe n'est sélectionnée.
+     */
     function updateRecap() {
+        // Récupère les valeurs de toutes les cases cochées
         const cochees = Array.from(
             document.querySelectorAll('input[name="classes"]:checked')
         ).map(cb => cb.value);
@@ -276,17 +278,22 @@
         const recapTexte = document.getElementById('recap-texte');
 
         if (cochees.length > 0) {
-            recapTexte.textContent = `${cochees.length} classe(s) sélectionnée(s) : ${cochees.join(', ')}`;
-            recap.style.display = 'block';
+            recapTexte.textContent =
+                `${cochees.length} classe(s) sélectionnée(s) : ${cochees.join(', ')}`;
+            recap.style.display = 'block'; // Affiche le récapitulatif
         } else {
-            recap.style.display = 'none';
+            recap.style.display = 'none'; // Cache le récapitulatif
         }
     }
 
+    // Attache l'événement "change" à chaque case à cocher au chargement de la page
+    // Nécessaire pour que updateRecap() soit appelé à chaque clic
     document.querySelectorAll('input[name="classes"]').forEach(cb => {
         cb.addEventListener('change', updateRecap);
     });
 
+    // Appel initial pour afficher le récapitulatif si des classes étaient
+    // déjà cochées (cas d'un formulaire resoumis après erreur de validation)
     updateRecap();
 </script>
 {% endblock %}

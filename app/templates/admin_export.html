@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Export paiements — Admin CNDK{% endblock %}
+{% block eyebrow %}Administration — Export{% endblock %}
+{% block page_title %}Exporter les paiements{% endblock %}
+{% block page_subtitle %}Exportez en CSV pour consultation ou en DBF pour import dans Bob50.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('main.admin_dashboard') }}" class="btn btn-light">← Tableau de bord</a>
+{% endblock %}
+
+{% block extra_css %}
+
+{% endblock %}
+
+{% block content %}
+
+<form method="GET" action="{{ url_for('main.admin_export') }}" id="formExport">
+
+<div class="export-layout">
+
+    {# ── Colonne gauche : filtres ───────────────────────────── #}
+    <div class="card">
+        <h3 style="font-size:1rem;font-weight:700;color:var(--navy);margin:0 0 1.25rem">
+            🔍 Filtres
+        </h3>
+
+        <div class="form-section">
+            <label for="activite_id">Activité</label>
+            <select name="activite_id" id="activite_id" onchange="this.form.submit()">
+                <option value="">— Toutes les activités —</option>
+                {% for a in activites_dispo %}
+                <option value="{{ a.id }}"
+                    {% if filtres.activite_id == a.id|string %}selected{% endif %}>
+                    {{ a.titre }} ({{ a.date_limite_paiement }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-section">
+            <label for="classe">Classe</label>
+            <select name="classe" id="classe" onchange="this.form.submit()">
+                <option value="">— Toutes les classes —</option>
+                {% for c in classes_dispo %}
+                <option value="{{ c }}"
+                    {% if filtres.classe == c %}selected{% endif %}>
+                    {{ c }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-section">
+            <label for="statut">Statut</label>
+            <select name="statut" id="statut" onchange="this.form.submit()">
+                <option value="paye"       {% if filtres.statut == 'paye' %}selected{% endif %}>Payés uniquement</option>
+                <option value="tous"       {% if filtres.statut == 'tous' %}selected{% endif %}>Tous (payés + en attente)</option>
+                <option value="en_attente" {% if filtres.statut == 'en_attente' %}selected{% endif %}>En attente uniquement</option>
+            </select>
+        </div>
+
+        <div class="form-section">
+            <label>Période (date de validation)</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+                <div>
+                    <input type="date" name="date_debut" value="{{ filtres.date_debut }}">
+                    <p class="hint">Du</p>
+                </div>
+                <div>
+                    <input type="date" name="date_fin" value="{{ filtres.date_fin }}">
+                    <p class="hint">Au</p>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex;gap:0.75rem;align-items:center;margin-top:0.5rem">
+            <button type="submit" class="btn btn-light">Actualiser l'aperçu</button>
+            <a href="{{ url_for('main.admin_export') }}" class="btn btn-light"
+               style="font-size:0.82rem;color:var(--slate)">Réinitialiser</a>
+        </div>
+
+        <div class="csv-columns">
+            <h4>Colonnes du fichier CSV</h4>
+            <div class="col-list">
+                 <span class="col-tag">activite</span>
+    <span class="col-tag">classe</span>
+                <span class="col-tag">nom_eleve</span>
+                <span class="col-tag">prenom_eleve</span>
+                <span class="col-tag">matricule_fase</span>
+                <span class="col-tag">option</span>
+                <span class="col-tag">statut</span>
+                <span class="col-tag">montant</span>
+                <span class="col-tag">reference</span>
+                <span class="col-tag">date_validation</span>
+                <span class="col-tag">mode_paiement</span>
+            </div>
+            <p class="hint" style="margin-top:0.6rem">Trié par activité → classe → nom élève</p>
+        </div>
+    </div>
+
+    {# ── Colonne droite : aperçu + boutons export ──────────── #}
+    <div>
+
+        {# Aperçu du tableau #}
+        <div class="preview-card">
+            <div class="preview-header">
+                <h3>Aperçu</h3>
+                <span class="preview-count">{{ lignes|length }} ligne(s)</span>
+            </div>
+
+            {% if lignes %}
+            <div style="overflow-x:auto">
+                <table class="preview-table">
+                    <thead>
+                        <tr>
+                            <th>Activité</th>
+                            <th>Classe</th>
+                            <th>Élève</th>
+                            <th>Statut</th>
+                            <th>Montant</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in lignes[:20] %}
+                        <tr>
+                            <td>{{ l.activite.titre }}</td>
+                            <td>{{ l.eleve.classe }}</td>
+                            <td>{{ l.eleve.nom }} {{ l.eleve.prenom }}</td>
+                            <td>
+                                {% if l.statut == 'paye' %}
+                                    <span class="badge badge-success">Payé</span>
+                                {% else %}
+                                    <span class="badge badge-warning">En attente</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ l.montant_attendu }} €</td>
+                            <td>
+                                {% if l.paiements %}
+                                    {{ l.paiements[0].paye_le.strftime('%d/%m/%Y') if l.paiements[0].paye_le else '—' }}
+                                {% else %}—{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if lignes|length > 20 %}
+                        <tr>
+                            <td colspan="6" style="text-align:center;color:var(--slate);font-style:italic;padding:0.75rem">
+                                … et {{ lignes|length - 20 }} ligne(s) supplémentaire(s) dans le fichier complet
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="preview-empty">Aucun résultat pour ces filtres.</div>
+            {% endif %}
+        </div>
+
+        {# Bouton export CSV #}
+        <div style="margin-top:1.25rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+            {% if lignes %}
+            <a href="{{ url_for('main.admin_export_csv',
+                        activite_id=filtres.activite_id,
+                        classe=filtres.classe,
+                        statut=filtres.statut,
+                        date_debut=filtres.date_debut,
+                        date_fin=filtres.date_fin) }}"
+               class="btn-export">
+                ⬇ Télécharger le CSV ({{ lignes|length }} ligne(s))
+            </a>
+            {% else %}
+            <button class="btn-export" disabled>⬇ Télécharger le CSV</button>
+            {% endif %}
+            <span style="font-size:0.8rem;color:var(--slate)">Encodage UTF-8, séparateur virgule</span>
+        </div>
+
+        {# ── Section Export Bob50 ──────────────────────────── #}
+        <div class="bob50-card">
+            <h3>🏦 Export vers Bob50</h3>
+
+            <div class="bob50-info">
+                <strong>⚠️ Attention — cet export est irréversible</strong>
+                Seuls les paiements <strong>validés et pas encore exportés</strong>
+                sont inclus. Une fois exportés, ils sont marqués comme traités
+                et n'apparaîtront plus dans le prochain export Bob50.
+                Les filtres ci-dessus ne s'appliquent pas à cet export —
+                il prend toujours <strong>tous les paiements non encore exportés</strong>.
+            </div>
+
+            <p style="font-size:0.85rem;color:var(--slate);margin-bottom:1rem">
+                Génère un fichier ZIP contenant <code>HFac.dbf</code> et <code>Lfac.dbf</code>
+                prêts à importer directement dans Bob50.
+            </p>
+
+            <a href="{{ url_for('main.admin_export_bob50') }}" class="btn-bob50">
+                📦 Générer l'export Bob50 (ZIP)
+            </a>
+        </div>
+
+    </div>
+
+</div>
+</form>
+
+{% endblock %}

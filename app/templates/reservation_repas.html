@@ -45,7 +45,7 @@
         border-bottom: 2px solid var(--border);
     }
 
-    /* Cellule d'un jour */
+    /* Cellule d'un jour — cliquable par défaut */
     .jour-cell {
         height: 80px;
         vertical-align: top;
@@ -60,7 +60,7 @@
         background: #EFF6FF;
     }
 
-    /* Jour non disponible (congé, week-end, passé) */
+    /* Jour fermé (week-end, mercredi) */
     .jour-cell.ferme {
         background: #F8FAFC;
         cursor: default;
@@ -69,6 +69,21 @@
 
     .jour-cell.ferme:hover {
         background: #F8FAFC;
+    }
+
+    /* Jour de congé scolaire — fond rose pâle distinct des week-ends */
+    .jour-cell.conge {
+        background: #FFF0F0;
+        cursor: default;
+        opacity: 0.8;
+    }
+
+    .jour-cell.conge:hover {
+        background: #FFF0F0;
+    }
+
+    .jour-cell.conge .jour-numero {
+        color: var(--red);
     }
 
     /* Jour hors du mois affiché */
@@ -86,7 +101,7 @@
         display: block;
     }
 
-    /* Aujourd'hui */
+    /* Aujourd'hui — cercle navy autour du numéro */
     .jour-cell.aujourd-hui .jour-numero {
         background: var(--navy);
         color: white;
@@ -194,26 +209,19 @@
         color: var(--green);
     }
 
-    .solde-valeur.faible {
-        color: var(--amber);
-    }
-
-    .solde-valeur.vide {
-        color: var(--red);
-    }
+    .solde-valeur.faible { color: var(--amber); }
+    .solde-valeur.vide   { color: var(--red); }
 </style>
 {% endblock %}
 
 {% block content %}
 
 {# ── Soldes des enfants ───────────────────────────────────── #}
-{# Affiche le solde de chaque enfant du parent en haut de page #}
 <div class="solde-card">
     <i class="bi bi-wallet2" style="font-size:1.5rem;color:var(--navy)"></i>
     {% for eleve in eleves_parent %}
     <div class="solde-item">
         <span class="solde-label">{{ eleve.prenom }} {{ eleve.nom }}</span>
-        {# Colore le solde selon son niveau #}
         {% set solde = eleve.solde_portefeuille|float %}
         <span class="solde-valeur {% if solde <= 0 %}vide{% elif solde < 5 %}faible{% endif %}">
             {{ "%.2f"|format(solde) }} €
@@ -225,72 +233,67 @@
     {% endfor %}
 </div>
 
-{# ── Navigation du calendrier ─────────────────────────────── #}
+{# ── Calendrier ───────────────────────────────────────────── #}
 <div class="card">
     <div class="card-body">
 
         <div class="calendrier-nav">
-            {# Lien mois précédent #}
             <a href="{{ url_for('main.parent_reservation_repas', mois=mois_precedent) }}"
                class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-chevron-left"></i>
             </a>
 
-            {# Nom du mois en français #}
             {% set noms_mois = {
                 1: 'Janvier', 2: 'Février', 3: 'Mars', 4: 'Avril',
                 5: 'Mai', 6: 'Juin', 7: 'Juillet', 8: 'Août',
                 9: 'Septembre', 10: 'Octobre', 11: 'Novembre', 12: 'Décembre'
             } %}
-            <span class="calendrier-mois">
-                {{ noms_mois[mois] }} {{ annee }}
-            </span>
+            <span class="calendrier-mois">{{ noms_mois[mois] }} {{ annee }}</span>
 
-            {# Lien mois suivant #}
             <a href="{{ url_for('main.parent_reservation_repas', mois=mois_suivant) }}"
                class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-chevron-right"></i>
             </a>
         </div>
 
-        {# ── Grille du calendrier ─────────────────────────── #}
         <table class="calendrier-table">
             <thead>
                 <tr>
-                    <th>Lun</th>
-                    <th>Mar</th>
-                    <th>Mer</th>
-                    <th>Jeu</th>
-                    <th>Ven</th>
-                    <th>Sam</th>
-                    <th>Dim</th>
+                    <th>Lun</th><th>Mar</th><th>Mer</th><th>Jeu</th>
+                    <th>Ven</th><th>Sam</th><th>Dim</th>
                 </tr>
             </thead>
             <tbody>
-               
                 {% for semaine in semaines %}
                 <tr>
                     {% for num_jour in semaine %}
 
-                        {# num_jour = 0 → jour hors du mois affiché #}
                         {% if num_jour == 0 %}
                         <td class="jour-cell hors-mois"></td>
 
                         {% else %}
-                            {# Construction de la date du jour #}
+                            {# Date du jour au format YYYY-MM-DD #}
                             {% set date_jour = (annee ~ '-' ~ '%02d'|format(mois) ~ '-' ~ '%02d'|format(num_jour)) %}
-                           
 
-                            {# Détermination du statut du jour #}
-                            {% set est_weekend = loop.index >= 6 %}
-                            {# weekday : 0=Lundi ... 6=Dimanche, index Jinja commence à 1 #}
+                            {# Détection congé : on parcourt les dates de congé #}
+                            {# dates_conge est un set de dates Python passé depuis routes.py #}
+                            {% set est_conge = namespace(value=false) %}
+                            {% for dc in dates_conge %}
+                                {% if dc|string == date_jour %}
+                                    {% set est_conge.value = true %}
+                                {% endif %}
+                            {% endfor %}
+
+                            {# loop.index : position dans la semaine (1=Lun ... 7=Dim) #}
+                            {% set est_weekend  = loop.index >= 6 %}
                             {% set est_mercredi = loop.index == 3 %}
-                            {% set est_conge = date_jour in dates_conge | map('string') %}
-                            {% set est_ferme = est_weekend or est_mercredi or est_conge %}
-                            {% set est_aujourd_hui = (annee ~ '-' ~ '%02d'|format(mois) ~ '-' ~ '%02d'|format(num_jour)) == maintenant.strftime('%Y-%m-%d') %}
+                            {% set est_ferme    = est_weekend or est_mercredi or est_conge.value %}
+                            {% set est_aujourd_hui = date_jour == maintenant.strftime('%Y-%m-%d') %}
 
                         <td class="jour-cell
-                                {% if est_ferme %}ferme{% endif %}
+                                {% if est_conge.value %}conge ferme
+                                {% elif est_ferme %}ferme
+                                {% endif %}
                                 {% if est_aujourd_hui %}aujourd-hui{% endif %}"
                             {% if not est_ferme %}
                             onclick="ouvrirModal('{{ date_jour }}', {{ annee }}, {{ mois }})"
@@ -298,10 +301,15 @@
 
                             <span class="jour-numero">{{ num_jour }}</span>
 
-                            {# Affiche les réservations de chaque enfant ce jour #}
+                            {# Badge congé affiché dans la cellule #}
+                            {% if est_conge.value %}
+                            <span style="font-size:0.6rem;color:var(--red);">
+                                <i class="bi bi-x-circle"></i> Congé
+                            </span>
+                            {% endif %}
+
+                            {# Réservations existantes #}
                             {% for eleve in eleves_parent %}
-                                {% set key = (eleve.id, date_jour) %}
-                                {# On cherche la réservation dans le dict #}
                                 {% for r_key, r in reservations_par_jour.items() %}
                                     {% if r_key[0] == eleve.id and r_key[1]|string == date_jour %}
                                         <span class="reservation-badge confirme">
@@ -330,14 +338,17 @@
         Réservé
     </span>
     <span class="text-muted small">
+        <span style="display:inline-block;width:12px;height:12px;background:#FFF0F0;border:1px solid #FCA5A5;border-radius:2px"></span>
+        Congé scolaire
+    </span>
+    <span class="text-muted small">
         <span style="display:inline-block;width:12px;height:12px;background:#F8FAFC;border:1px solid var(--border);border-radius:2px;opacity:0.5"></span>
-        Fermé / Congé
+        Week-end / Mercredi
     </span>
 </div>
 
 {# ══════════════════════════════════════════════════════════
    MODAL — Pop-up de réservation
-   Affiché au clic sur un jour disponible du calendrier.
    ══════════════════════════════════════════════════════════ #}
 <div class="modal fade" id="modalRepas" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -353,7 +364,6 @@
 
             <div class="modal-body">
 
-                {# Sélecteur d'enfant si plusieurs enfants #}
                 {% if eleves_parent | length > 1 %}
                 <div class="mb-3">
                     <label class="form-label fw-semibold small" style="color:var(--navy)">
@@ -369,12 +379,10 @@
                     </select>
                 </div>
                 {% else %}
-                {# Un seul enfant — pas besoin de sélecteur #}
                 <input type="hidden" id="select-eleve"
                        value="{{ eleves_parent[0].id if eleves_parent }}">
                 {% endif %}
 
-                {# Avertissement heure limite #}
                 {% if heure_limite_passee %}
                 <div class="alert alert-warning">
                     <i class="bi bi-exclamation-triangle"></i>
@@ -382,12 +390,10 @@
                 </div>
                 {% endif %}
 
-                {# Grille des tuiles de repas #}
                 <p class="fw-semibold small mb-2" style="color:var(--navy)">
                     Choisissez un repas :
                 </p>
 
-                {# Repas chauds d'abord #}
                 {% set repas_chauds = types_repas | selectattr('categorie', 'eq', 'chaud') | list %}
                 {% set sandwiches   = types_repas | selectattr('categorie', 'eq', 'sandwich') | list %}
 
@@ -396,8 +402,7 @@
                 <div class="row g-2 mb-3">
                     {% for t in repas_chauds %}
                     <div class="col-md-3 col-6">
-                        <div class="tuile-repas chaud"
-                             onclick="reserver({{ t.id }})">
+                        <div class="tuile-repas chaud" onclick="reserver({{ t.id }})">
                             <div class="tuile-nom">{{ t.nom }}</div>
                             {% if t.description %}
                             <div class="text-muted small">{{ t.description }}</div>
@@ -414,8 +419,7 @@
                 <div class="row g-2">
                     {% for t in sandwiches %}
                     <div class="col-md-3 col-6">
-                        <div class="tuile-repas"
-                             onclick="reserver({{ t.id }})">
+                        <div class="tuile-repas" onclick="reserver({{ t.id }})">
                             <div class="tuile-nom">{{ t.nom }}</div>
                             {% if t.description %}
                             <div class="text-muted small">{{ t.description }}</div>
@@ -427,12 +431,11 @@
                 </div>
                 {% endif %}
 
-                {# Zone réservation existante — affichée si déjà réservé #}
+                {# Zone réservation existante #}
                 <div id="zone-deja-reserve" style="display:none" class="mt-3">
                     <div class="alert alert-success">
                         <i class="bi bi-check-circle"></i>
                         <span id="texte-deja-reserve"></span>
-                        {# Formulaire d'annulation #}
                         <form id="form-annuler" method="POST" style="display:inline">
                             <input type="hidden" name="mois" id="h-mois-annuler">
                             <button type="submit" class="btn btn-outline-secondary btn-sm ms-2">
@@ -444,7 +447,7 @@
 
             </div>
 
-            {# Formulaire caché — soumis par JavaScript lors du clic sur une tuile #}
+            {# Formulaire caché soumis par JavaScript #}
             <form id="form-reserver"
                   action="{{ url_for('main.parent_reserver_repas') }}"
                   method="POST">
@@ -463,8 +466,6 @@
 
 {% block extra_js %}
 <script>
-    // Données des réservations passées depuis Python vers JavaScript
-    // Permet de savoir si un jour est déjà réservé sans appel serveur
     const reservations = {
         {% for (eleve_id, date_repas), r in reservations_par_jour.items() %}
         "{{ eleve_id }}-{{ date_repas }}": {
@@ -479,41 +480,23 @@
     let dateCourante = "";
     const moisCourant = "{{ annee }}-{{ '%02d'|format(mois) }}";
 
-    // Noms des mois en français pour l'affichage dans le modal
     const nomsMois = {
         "01":"janvier","02":"février","03":"mars","04":"avril",
         "05":"mai","06":"juin","07":"juillet","08":"août",
         "09":"septembre","10":"octobre","11":"novembre","12":"décembre"
     };
 
-    /**
-     * ouvrirModal(dateStr, annee, mois)
-     * Ouvre le pop-up Bootstrap pour un jour donné.
-     * Vérifie si une réservation existe déjà pour cet élève ce jour.
-     */
     function ouvrirModal(dateStr, annee, mois) {
         dateCourante = dateStr;
-
-        // Formate la date en "15 avril 2026" pour l'affichage
         const parts = dateStr.split("-");
         document.getElementById("modal-date-affichee").textContent =
             `${parseInt(parts[2])} ${nomsMois[parts[1]]} ${parts[0]}`;
-
-        // Met à jour la date dans le formulaire caché
         document.getElementById("h-date-repas").value = dateStr;
         document.getElementById("h-mois").value = moisCourant;
-
-        // Vérifie si déjà réservé pour l'élève sélectionné
         verifierReservationExistante();
-
-        // Ouvre le modal Bootstrap
         new bootstrap.Modal(document.getElementById("modalRepas")).show();
     }
 
-    /**
-     * verifierReservationExistante()
-     * Affiche ou masque la zone "déjà réservé" selon l'élève sélectionné.
-     */
     function verifierReservationExistante() {
         const eleveId = document.getElementById("select-eleve").value;
         const cle = `${eleveId}-${dateCourante}`;
@@ -524,8 +507,7 @@
 
         if (reservations[cle]) {
             const r = reservations[cle];
-            texte.textContent =
-                `Déjà réservé : ${r.type_nom} (${r.montant.toFixed(2)}€)`;
+            texte.textContent = `Déjà réservé : ${r.type_nom} (${r.montant.toFixed(2)}€)`;
             formAnnuler.action = r.annulation_url;
             hMoisAnnuler.value = moisCourant;
             zone.style.display = "block";
@@ -534,10 +516,6 @@
         }
     }
 
-    /**
-     * reserver(typeRepasId)
-     * Remplit le formulaire caché et le soumet pour créer la réservation.
-     */
     function reserver(typeRepasId) {
         document.getElementById("h-eleve-id").value =
             document.getElementById("select-eleve").value;
@@ -545,7 +523,6 @@
         document.getElementById("form-reserver").submit();
     }
 
-    // Met à jour la zone réservation si l'élève change dans le sélecteur
     const selectEleve = document.getElementById("select-eleve");
     if (selectEleve && selectEleve.tagName === "SELECT") {
         selectEleve.addEventListener("change", verifierReservationExistante);

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{# Hérite de base.html : sidebar, topbar, flash messages inclus automatiquement #}
 
 {% block title %}Activités — Admin CNDK{% endblock %}
 {% block eyebrow %}Administration — Activités{% endblock %}
@@ -6,6 +7,7 @@
 {% block page_subtitle %}Liste de toutes les activités et leur taux de paiement.{% endblock %}
 
 {% block topbar_actions %}
+{# Boutons affichés en haut à droite de la topbar #}
 <a href="{{ url_for('main.admin_nouvelle_activite') }}" class="btn btn-amber">
     <i class="bi bi-plus-circle"></i> Nouvelle activité
 </a>
@@ -16,72 +18,96 @@
 
 {% block content %}
 
+{# Si des activités existent, on affiche le tableau #}
 {% if activites %}
 <div class="card">
-    <table class="table table-hover">
-        <thead>
-            <tr>
-                <th>Titre</th>
-                <th>Montant</th>
-                <th>Date limite</th>
-                <th>Statut</th>
-                <th>Paiements reçus</th>
-                <th>Progression</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for a in activites %}
+    {# p-0 : supprime le padding pour que le tableau soit cadré dans la card #}
+    <div class="card-body p-0">
+        {# table-hover : effet de survol sur les lignes #}
+        {# mb-0 : supprime la marge du bas du tableau #}
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Titre</th>
+                    <th>Montant</th>
+                    <th>Date limite</th>
+                    <th>Statut</th>
+                    <th>Paiements reçus</th>
+                    <th>Progression</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for a in activites %}
 
-            {# On donne des noms aux colonnes → BEAUCOUP plus clair #}
-            {% set id = a[0] %}
-            {% set titre = a[1] %}
-            {% set montant = a[2] %}
-            {% set date_limite = a[3] %}
-            {% set statut = a[4] %}
-            {% set total = a[5] %}
-            {% set payes = a[6] %}
+                {# On donne des noms aux colonnes → BEAUCOUP plus clair #}
+                {# La requête SQLAlchemy retourne des tuples nommés #}
+                {# a[0] = id, a[1] = titre, a[2] = montant, etc. #}
+                {% set id = a[0] %}
+                {% set titre = a[1] %}
+                {% set montant = a[2] %}
+                {% set date_limite = a[3] %}
+                {% set statut = a[4] %}
+                {% set total = a[5] %}
+                {% set payes = a[6] %}
 
-            {% set pct = ((payes / total * 100) | int) if total > 0 else 0 %}
+                {# Calcul du pourcentage de paiement #}
+                {# Si total = 0 → on évite la division par zéro avec "else 0" #}
+                {# | int : filtre Jinja2 qui convertit en entier (supprime les décimales) #}
+                {% set pct = ((payes / total * 100) | int) if total > 0 else 0 %}
 
-            <tr>
-                <td><strong>{{ titre }}</strong></td>
-                <td>{{ montant }} €</td>
-                <td>{{ date_limite }}</td>
+                <tr>
+                    <td><strong>{{ titre }}</strong></td>
+                    <td>{{ montant }} €</td>
+                    <td>{{ date_limite }}</td>
 
-                <td>
-                    {% if statut == 'ouvert' %}
-                        <span class="badge badge-success">Ouvert</span>
-                    {% elif statut == 'clos' %}
-                        <span class="badge badge-warning">Clos</span>
-                    {% else %}
-                        <span class="badge">{{ statut }}</span>
-                    {% endif %}
-                </td>
+                    {# Badge de statut coloré selon la valeur #}
+                    <td>
+                        {% if statut == 'ouvert' %}
+                            {# badge-success : fond vert défini dans style.css #}
+                            <span class="badge badge-success">Ouvert</span>
+                        {% elif statut == 'clos' %}
+                            {# badge-warning : fond orange défini dans style.css #}
+                            <span class="badge badge-warning">Clos</span>
+                        {% else %}
+                            {# Affiche le statut brut si valeur inconnue #}
+                            <span class="badge">{{ statut }}</span>
+                        {% endif %}
+                    </td>
 
-                <td>{{ payes }} / {{ total }}</td>
+                    {# Nombre de paiements reçus sur le total d'élèves affectés #}
+                    <td>{{ payes }} / {{ total }}</td>
 
-                <td>
-                    <div class="progress-bar-bg">
-                       <div class="progress-bar-fill" style="width: {{ pct }}%;"></div>
-                    </div>
-                    <small style="margin-left:0.4rem;color:var(--slate)">
-                        {{ pct }}%
-                    </small>
-                </td>
-            </tr>
+                    {# Barre de progression visuelle + pourcentage #}
+                    <td>
+                        {# progress-bar-bg : conteneur gris de la barre (style.css) #}
+                        <div class="progress-bar-bg">
+                            {# progress-bar-fill : barre verte dont la largeur = pct% #}
+                            <div class="progress-bar-fill" style="width: {{ pct }}%;"></div>
+                        </div>
+                        <small style="margin-left:0.4rem;color:var(--slate)">
+                            {{ pct }}%
+                        </small>
+                    </td>
+                </tr>
 
-        {% endfor %}
-        </tbody>
-    </table>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
+
 {% else %}
+{# Message affiché si aucune activité n'existe encore dans la base #}
 <div class="card">
-    <p style="color:var(--slate);margin-bottom:1rem">
-        Aucune activité créée pour le moment.
-    </p>
-    <a href="{{ url_for('main.admin_nouvelle_activite') }}" class="btn btn-navy">
-    <i class="bi bi-plus-circle"></i> Créer la première activité
-</a>
+    <div class="card-body">
+        <p style="color:var(--slate);margin-bottom:1rem">
+            Aucune activité créée pour le moment.
+        </p>
+        {# btn-navy : notre classe CSS (fond navy) #}
+        <a href="{{ url_for('main.admin_nouvelle_activite') }}" class="btn btn-navy">
+            <i class="bi bi-plus-circle"></i> Créer la première activité
+        </a>
+    </div>
 </div>
 {% endif %}
 

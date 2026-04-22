@@ -70,6 +70,29 @@ class Eleve(db.Model):
         back_populates="eleve",
         cascade="all, delete-orphan"
     )
+    # Solde actuel du portefeuille repas de l'élève
+    # Mis à jour à chaque crédit (import extrait) ou débit (réservation repas)
+    # NULL non autorisé : toujours initialisé à 0.00 à la création
+    solde_portefeuille = db.Column(
+        db.Numeric(8, 2),
+        nullable=False,
+        default=0
+    )
+
+    # Relation : historique des réservations de repas de l'élève
+    reservations_repas = db.relationship(
+        "ReservationRepas",
+        back_populates="eleve",
+        cascade="all, delete-orphan"
+    )
+
+    # Relation : historique des mouvements du portefeuille de l'élève
+    mouvements_portefeuille = db.relationship(
+        "MouvementPortefeuille",
+        back_populates="eleve",
+        cascade="all, delete-orphan"
+    )
+
 
     activites_affectees = db.relationship(
         "ActiviteEleve",
@@ -202,3 +225,176 @@ class PaiementActivite(db.Model):
 
     def __repr__(self):
         return f"<PaiementActivite id={self.id} statut={self.statut}>"
+    
+    
+# ═══════════════════════════════════════════════════════════
+# MODULE REPAS & PORTEFEUILLE
+# ═══════════════════════════════════════════════════════════
+# Ajout de 4 nouvelles tables :
+#   → TypeRepas            : types de repas disponibles (définis par l'admin)
+#   → JourRepas            : calendrier des jours avec repas
+#   → ReservationRepas     : réservation d'un élève pour un repas un jour donné
+#   → MouvementPortefeuille: historique de tous les mouvements du solde
+#
+# Et une colonne sur Eleve :
+#   → solde_portefeuille   : solde actuel du portefeuille de l'élève
+#
+# Après modification, générer la migration :
+#   flask db migrate -m "ajout module repas et portefeuille"
+#   flask db upgrade
+# ═══════════════════════════════════════════════════════════
+
+
+# ── TypeRepas ────────────────────────────────────────────────
+class TypeRepas(db.Model):
+    """
+    Définit les types de repas disponibles à la réservation.
+    Créé et géré par l'admin (compta).
+    Ex : Repas chaud (4.00€), Sandwich thon (2.50€), etc.
+    """
+    __tablename__ = "types_repas"
+
+    id          = db.Column(db.Integer, primary_key=True)
+    nom         = db.Column(db.String(100), nullable=False)
+    # Description optionnelle affichée sur la tuile de réservation
+    description = db.Column(db.Text)
+    # Prix fixe du repas — Numeric(8,2) : pas d'erreur d'arrondi (ex: 4.00, 2.50)
+    prix        = db.Column(db.Numeric(8, 2), nullable=False)
+    # actif : permet de désactiver un type sans le supprimer
+    # False = n'apparaît plus dans les tuiles de réservation
+    actif       = db.Column(db.Boolean, nullable=False, default=True)
+
+    # Relation : liste des réservations liées à ce type de repas
+    reservations = db.relationship(
+        "ReservationRepas",
+        back_populates="type_repas",
+        cascade="all, delete-orphan"
+    )
+
+    def __repr__(self):
+        return f"<TypeRepas {self.nom} ({self.prix}€)>"
+
+
+# ── JourRepas ────────────────────────────────────────────────
+class JourRepas(db.Model):
+    """
+    Représente un jour du calendrier où les repas sont disponibles.
+    Créé par l'admin pour ouvrir ou fermer les réservations sur une date donnée.
+    Ex : 2025-09-15 → ouvert, 2025-09-16 → fermé (jour sans repas)
+    """
+    __tablename__ = "jours_repas"
+
+    id     = db.Column(db.Integer, primary_key=True)
+    # date : la date du jour de repas — unique (un seul enregistrement par jour)
+    date   = db.Column(db.Date, nullable=False, unique=True)
+    # ouvert : True = réservations acceptées, False = jour fermé
+    ouvert = db.Column(db.Boolean, nullable=False, default=True)
+
+    # Relation : liste des réservations faites pour ce jour
+    reservations = db.relationship(
+        "ReservationRepas",
+        back_populates="jour_repas",
+        cascade="all, delete-orphan"
+    )
+
+    def __repr__(self):
+        return f"<JourRepas {self.date} {'ouvert' if self.ouvert else 'fermé'}>"
+
+
+# ── ReservationRepas ─────────────────────────────────────────
+class ReservationRepas(db.Model):
+    """
+    Enregistre la réservation d'un repas par un élève pour un jour donné.
+    Le montant est déduit du solde_portefeuille de l'élève au moment
+    de la réservation. Un mouvement de portefeuille est créé en parallèle.
+    """
+    __tablename__ = "reservations_repas"
+
+    # Contrainte d'unicité : un élève ne peut réserver qu'un seul repas par jour
+    __table_args__ = (
+        db.UniqueConstraint(
+            "eleve_id", "jour_repas_id",
+            name="uq_reservation_eleve_jour"
+        ),
+    )
+
+    id            = db.Column(db.Integer, primary_key=True)
+
+    eleve_id      = db.Column(
+        db.Integer,
+        db.ForeignKey("eleves.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    type_repas_id = db.Column(
+        db.Integer,
+        db.ForeignKey("types_repas.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    jour_repas_id = db.Column(
+        db.Integer,
+        db.ForeignKey("jours_repas.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    # montant : copie du prix au moment de la réservation
+    # Permet de garder l'historique même si le prix change ensuite
+    montant    = db.Column(db.Numeric(8, 2), nullable=False)
+
+    # statut : "confirme" (défaut) ou "annule"
+    # Une annulation recrédite le portefeuille via un nouveau mouvement
+    statut     = db.Column(db.String(20), nullable=False, default="confirme")
+
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
+
+    # Relations SQLAlchemy
+    eleve      = db.relationship("Eleve",      back_populates="reservations_repas")
+    type_repas = db.relationship("TypeRepas",  back_populates="reservations")
+    jour_repas = db.relationship("JourRepas",  back_populates="reservations")
+
+    def __repr__(self):
+        return f"<ReservationRepas eleve={self.eleve_id} jour={self.jour_repas_id} statut={self.statut}>"
+
+
+# ── MouvementPortefeuille ────────────────────────────────────
+class MouvementPortefeuille(db.Model):
+    """
+    Historique de tous les mouvements du portefeuille d'un élève.
+    Chaque opération (crédit ou débit) crée une ligne ici.
+
+    Types de mouvements :
+        "credit"  → rechargement par import d'extrait bancaire
+        "debit"   → déduction suite à une réservation de repas
+        "remb"    → remboursement suite à une annulation de réservation
+
+    Le solde affiché vient de Eleve.solde_portefeuille (mis à jour à chaque mouvement).
+    Cette table sert uniquement à l'historique et à la traçabilité.
+    """
+    __tablename__ = "mouvements_portefeuille"
+
+    id       = db.Column(db.Integer, primary_key=True)
+
+    eleve_id = db.Column(
+        db.Integer,
+        db.ForeignKey("eleves.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    # montant : toujours positif — le type indique si c'est un crédit ou un débit
+    montant  = db.Column(db.Numeric(8, 2), nullable=False)
+
+    # type : "credit", "debit" ou "remb"
+    type     = db.Column(db.String(20), nullable=False)
+
+    # motif : description lisible du mouvement
+    # Ex : "Rechargement extrait bancaire", "Réservation repas chaud 15/09/2025"
+    motif    = db.Column(db.String(200))
+
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
+
+    # Relation vers l'élève concerné
+    eleve = db.relationship("Eleve", back_populates="mouvements_portefeuille")
+
+    def __repr__(self):
+        return f"<MouvementPortefeuille eleve={self.eleve_id} type={self.type} montant={self.montant}>"

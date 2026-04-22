@@ -7,6 +7,13 @@ from config import Config
 # On importe l'instance SQLAlchemy (notre "outil" pour accéder à la base de données)
 from app.extensions import db
 
+# On importe la classe Migrate depuis la bibliothèque flask_migrate.
+# Flask-Migrate est une extension qui ajoute la commande "flask db" au terminal.
+# Sans cet import, la commande "flask db migrate" n'existe pas
+# et Flask ne sait pas gérer les changements de structure de la base de données
+from flask_migrate import Migrate
+
+
 
 # Cette fonction va créer et configurer l'application Flask
 # C'est le point d'entrée de notre application
@@ -29,6 +36,20 @@ def create_app():
     # - utiliser la configuration (URI, etc.)
     # - être utilisé dans tout le projet (modèles, routes...)
     db.init_app(app)
+
+   # On crée une instance de Migrate en lui passant deux paramètres :
+#   - app : l'application Flask (pour qu'il sache dans quel projet il travaille)
+#   - db  : l'instance SQLAlchemy (pour qu'il puisse lire les modèles
+#            et comparer avec la base de données réelle)
+#
+# Concrètement, cette ligne fait trois choses :
+#   1. Active la commande "flask db" dans le terminal
+#   2. Relie Flask-Migrate à aux modèles SQLAlchemy (models.py)
+#   3. Relie Flask-Migrate à la base de données PostgreSQL
+#
+# Sans cette ligne, même si flask_migrate est installé,
+# la commande "flask db" reste introuvable.
+    Migrate(app, db)
 
     # On importe les routes (les pages du site)
     # Important : on importe ici pour éviter des problèmes de dépendances circulaires

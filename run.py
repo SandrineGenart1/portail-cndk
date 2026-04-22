@@ -1,3 +1,8 @@
+from dotenv import load_dotenv
+load_dotenv()
+
+
+
 # On importe la fonction create_app définie dans le fichier __init__.py du dossier app
 from app import create_app
 
@@ -6,7 +11,6 @@ from app.extensions import db
 
 # On crée l'application Flask
 app = create_app()
-
 
 
 # Cette condition vérifie si ce fichier est exécuté directement

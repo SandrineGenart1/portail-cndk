@@ -1292,3 +1292,330 @@ def admin_importer_conges_csv():
         flash(f"{nb_erreurs} ligne(s) ignorée(s) — erreur de format.", "erreur")
 
     return redirect(url_for("main.admin_calendrier_repas"))
+
+
+    # ─────────────────────────────────────────────────────────────
+# RÉSERVATION REPAS — PARENT
+# ─────────────────────────────────────────────────────────────
+
+@main.route("/parent/repas")
+def parent_reservation_repas():
+    """
+    Calendrier mensuel de réservation des repas.
+    Affiche le mois en cours par défaut, navigation possible.
+    Chaque jour cliquable ouvre un pop-up avec les tuiles de repas.
+    Réservation bloquée après 8h00 le matin même.
+    """
+    from datetime import date, datetime
+    import calendar
+
+    parent_id = 1  # TODO : flask_login.current_user.id
+
+    # ── Mois affiché — paramètre GET ou mois en cours ────────
+    # ?mois=2026-05 → affiche mai 2026
+    mois_str = request.args.get("mois", "")
+    try:
+        if mois_str:
+            annee, mois = map(int, mois_str.split("-"))
+        else:
+            annee = date.today().year
+            mois  = date.today().month
+    except ValueError:
+        annee = date.today().year
+        mois  = date.today().month
+
+    # ── Navigation mois précédent / suivant ──────────────────
+    if mois == 1:
+        mois_precedent = f"{annee - 1}-12"
+    else:
+        mois_precedent = f"{annee}-{mois - 1:02d}"
+
+    if mois == 12:
+        mois_suivant = f"{annee + 1}-01"
+    else:
+        mois_suivant = f"{annee}-{mois + 1:02d}"
+
+    # ── Génération des jours du mois ─────────────────────────
+    # calendar.monthcalendar retourne une liste de semaines
+    # Chaque semaine est une liste de 7 jours (0 = jour hors mois)
+    semaines = calendar.monthcalendar(annee, mois)
+
+    # ── Récupération des congés du mois ──────────────────────
+    # Pour savoir quels jours sont fermés
+    premier_jour = date(annee, mois, 1)
+    dernier_jour = date(annee, mois, calendar.monthrange(annee, mois)[1])
+
+    conges = CongeRepas.query.filter(
+        CongeRepas.date_debut <= dernier_jour,
+        CongeRepas.date_fin   >= premier_jour
+    ).all()
+
+    # Construit un set de toutes les dates en congé pour lookup rapide
+    dates_conge = set()
+    for c in conges:
+        d = c.date_debut
+        while d <= c.date_fin:
+            dates_conge.add(d)
+            from datetime import timedelta
+            d += timedelta(days=1)
+
+    # ── Récupération des réservations du parent ce mois ──────
+    # On récupère les enfants du parent d'abord
+    eleves_parent = (
+        Eleve.query
+        .join(ParentEleve, ParentEleve.eleve_id == Eleve.id)
+        .filter(ParentEleve.parent_id == parent_id)
+        .filter(Eleve.actif == True)
+        .all()
+    )
+
+    eleve_ids = [e.id for e in eleves_parent]
+
+    # Réservations confirmées ce mois pour les enfants du parent
+    reservations = (
+        ReservationRepas.query
+        .filter(ReservationRepas.eleve_id.in_(eleve_ids))
+        .filter(ReservationRepas.date_repas >= premier_jour)
+        .filter(ReservationRepas.date_repas <= dernier_jour)
+        .filter(ReservationRepas.statut == "confirme")
+        .all()
+    )
+
+    # Construit un dict {(eleve_id, date): reservation} pour lookup rapide
+    reservations_par_jour = {
+        (r.eleve_id, r.date_repas): r for r in reservations
+    }
+
+    # ── Types de repas actifs ─────────────────────────────────
+    types_repas = (
+        TypeRepas.query
+        .filter(TypeRepas.actif == True)
+        .order_by(TypeRepas.categorie.desc(), TypeRepas.nom)
+        .all()
+    )
+
+    # ── Heure limite : 8h00 le matin même ────────────────────
+    maintenant = datetime.now()
+    heure_limite_passee = maintenant.hour >= 8
+
+    return render_template(
+        "reservation_repas.html",
+        annee=annee,
+        mois=mois,
+        mois_precedent=mois_precedent,
+        mois_suivant=mois_suivant,
+        semaines=semaines,
+        dates_conge=dates_conge,
+        eleves_parent=eleves_parent,
+        reservations_par_jour=reservations_par_jour,
+        types_repas=types_repas,
+        heure_limite_passee=heure_limite_passee,
+        maintenant=maintenant,
+        role="parent",
+        active="repas",
+        current_user_name="Parent (test)"
+    )
+
+
+@main.route("/parent/repas/reserver", methods=["POST"])
+def parent_reserver_repas():
+    """
+    Enregistre une réservation de repas pour un élève.
+    Vérifie :
+    - L'heure limite (8h00 le matin même)
+    - Que l'élève appartient bien au parent connecté
+    - Que le jour n'est pas un congé
+    - Que le solde est suffisant
+    - Qu'il n'y a pas déjà une réservation ce jour
+    """
+    from datetime import date, datetime
+
+    parent_id = 1  # TODO : flask_login.current_user.id
+
+    eleve_id      = request.form.get("eleve_id", type=int)
+    type_repas_id = request.form.get("type_repas_id", type=int)
+    date_str      = request.form.get("date_repas", "").strip()
+    mois_str      = request.form.get("mois", "")
+
+    # ── Validation de base ────────────────────────────────────
+    if not all([eleve_id, type_repas_id, date_str]):
+        flash("Données manquantes.", "erreur")
+        return redirect(url_for("main.parent_reservation_repas", mois=mois_str))
+
+    try:
+        date_repas = date.fromisoformat(date_str)
+    except ValueError:
+        flash("Date invalide.", "erreur")
+        return redirect(url_for("main.parent_reservation_repas", mois=mois_str))
+
+    # ── Vérification heure limite ─────────────────────────────
+    maintenant = datetime.now()
+    if date_repas == date.today() and maintenant.hour >= 8:
+        flash("Les réservations sont closes depuis 8h00 ce matin.", "erreur")
+        return redirect(url_for("main.parent_reservation_repas", mois=mois_str))
+
+    if date_repas < date.today():
+        flash("Impossible de réserver pour une date passée.", "erreur")
+        return redirect(url_for("main.parent_reservation_repas", mois=mois_str))
+
+    # ── Vérification que l'élève appartient au parent ─────────
+    lien = ParentEleve.query.filter_by(
+        parent_id=parent_id,
+        eleve_id=eleve_id
+    ).first()
+
+    if not lien:
+        flash("Accès non autorisé.", "erreur")
+        return redirect(url_for("main.parent_reservation_repas", mois=mois_str))
+
+    eleve      = Eleve.query.get_or_404(eleve_id)
+    type_repas = TypeRepas.query.get_or_404(type_repas_id)
+
+    # ── Vérification congé ────────────────────────────────────
+    conge = CongeRepas.query.filter(
+        CongeRepas.date_debut <= date_repas,
+        CongeRepas.date_fin   >= date_repas
+    ).first()
+
+    if conge:
+        flash("Aucun repas disponible ce jour (congé scolaire).", "erreur")
+        return redirect(url_for("main.parent_reservation_repas", mois=mois_str))
+
+    # ── Vérification doublon ──────────────────────────────────
+    existe = ReservationRepas.query.filter_by(
+        eleve_id=eleve_id,
+        date_repas=date_repas,
+        statut="confirme"
+    ).first()
+
+    if existe:
+        flash(f"{eleve.prenom} a déjà un repas réservé ce jour.", "erreur")
+        return redirect(url_for("main.parent_reservation_repas", mois=mois_str))
+
+    # ── Vérification solde suffisant ──────────────────────────
+    if float(eleve.solde_portefeuille) < float(type_repas.prix):
+        flash(
+            f"Solde insuffisant pour {eleve.prenom} "
+            f"(solde : {float(eleve.solde_portefeuille):.2f}€ / "
+            f"prix : {float(type_repas.prix):.2f}€).",
+            "erreur"
+        )
+        return redirect(url_for("main.parent_reservation_repas", mois=mois_str))
+
+    # ── Création de la réservation ────────────────────────────
+    reservation = ReservationRepas(
+        eleve_id=eleve_id,
+        type_repas_id=type_repas_id,
+        date_repas=date_repas,
+        montant=type_repas.prix,
+        statut="confirme"
+    )
+    db.session.add(reservation)
+
+    # ── Débit du portefeuille ─────────────────────────────────
+    eleve.solde_portefeuille = float(eleve.solde_portefeuille) - float(type_repas.prix)
+
+    mouvement = MouvementPortefeuille(
+        eleve_id=eleve_id,
+        montant=type_repas.prix,
+        type="debit",
+        motif=f"Réservation {type_repas.nom} — {date_repas.strftime('%d/%m/%Y')}"
+    )
+    db.session.add(mouvement)
+    db.session.commit()
+
+    flash(
+        f"Repas « {type_repas.nom} » réservé pour {eleve.prenom} "
+        f"le {date_repas.strftime('%d/%m/%Y')} "
+        f"({float(type_repas.prix):.2f}€ débité).",
+        "succes"
+    )
+    return redirect(url_for("main.parent_reservation_repas", mois=mois_str))
+
+
+@main.route("/parent/repas/annuler/<int:reservation_id>", methods=["POST"])
+def parent_annuler_repas(reservation_id):
+    """
+    Annule une réservation de repas et rembourse le portefeuille.
+    Annulation possible jusqu'à 8h00 le matin même.
+    """
+    from datetime import date, datetime
+
+    parent_id = 1  # TODO : flask_login.current_user.id
+
+    reservation = ReservationRepas.query.get_or_404(reservation_id)
+    mois_str = request.form.get("mois", "")
+
+    # ── Vérification que l'élève appartient au parent ─────────
+    lien = ParentEleve.query.filter_by(
+        parent_id=parent_id,
+        eleve_id=reservation.eleve_id
+    ).first()
+
+    if not lien:
+        flash("Accès non autorisé.", "erreur")
+        return redirect(url_for("main.parent_reservation_repas", mois=mois_str))
+
+    # ── Vérification heure limite ─────────────────────────────
+    maintenant = datetime.now()
+    if reservation.date_repas == date.today() and maintenant.hour >= 8:
+        flash("Les annulations sont closes depuis 8h00 ce matin.", "erreur")
+        return redirect(url_for("main.parent_reservation_repas", mois=mois_str))
+
+    if reservation.date_repas < date.today():
+        flash("Impossible d'annuler une réservation passée.", "erreur")
+        return redirect(url_for("main.parent_reservation_repas", mois=mois_str))
+
+    # ── Annulation + remboursement ────────────────────────────
+    eleve = Eleve.query.get(reservation.eleve_id)
+
+    reservation.statut = "annule"
+
+    # Remboursement du portefeuille
+    eleve.solde_portefeuille = float(eleve.solde_portefeuille) + float(reservation.montant)
+
+    mouvement = MouvementPortefeuille(
+        eleve_id=eleve.id,
+        montant=reservation.montant,
+        type="remb",
+        motif=f"Annulation {reservation.type_repas.nom} — "
+              f"{reservation.date_repas.strftime('%d/%m/%Y')}"
+    )
+    db.session.add(mouvement)
+    db.session.commit()
+
+    flash(
+        f"Réservation annulée — {float(reservation.montant):.2f}€ "
+        f"remboursé sur le portefeuille de {eleve.prenom}.",
+        "succes"
+    )
+    return redirect(url_for("main.parent_reservation_repas", mois=mois_str))
+
+
+@main.route("/parent/repas/historique")
+def parent_historique_repas():
+    """
+    Historique des repas réservés pour les enfants du parent connecté.
+    Triés du plus récent au plus ancien.
+    """
+    parent_id = 1  # TODO : flask_login.current_user.id
+
+    eleve_ids = [
+        lien.eleve_id for lien in
+        ParentEleve.query.filter_by(parent_id=parent_id).all()
+    ]
+
+    reservations = (
+        ReservationRepas.query
+        .filter(ReservationRepas.eleve_id.in_(eleve_ids))
+        .order_by(ReservationRepas.date_repas.desc())
+        .all()
+    )
+
+    return render_template(
+        "historique_repas.html",
+        reservations=reservations,
+        role="parent",
+        active="repas",
+        current_user_name="Parent (test)"
+    )

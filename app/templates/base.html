@@ -150,9 +150,9 @@
             <div class="nav-divider"></div>
             <div class="nav-section">Repas</div>
 
-            <a href="#" class="sidebar-link">
+            <a href="{{ url_for('main.parent_reservation_repas') }}"
+                class="sidebar-link {% if active == 'repas' %}active{% endif %}">
                 <i class="bi bi-calendar3"></i> Réserver un repas
-                <span class="badge-soon">Bientôt</span>
             </a>
 
             <a href="#" class="sidebar-link">

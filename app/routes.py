@@ -368,14 +368,16 @@ def admin_nouvelle_activite():
     )
 
 # ─────────────────────────────────────────────────────────────
-# IMPORT CSV ÉLÈVES
+# IMPORT CSV / XLSX ÉLÈVES
 # ─────────────────────────────────────────────────────────────
 
 @main.route("/admin/eleves/importer", methods=["GET", "POST"])
 def admin_importer_eleves():
     """
-    Import CSV des élèves en début d'année scolaire.
-    Format attendu : prenom,nom,classe,option,annee_scolaire
+    Import des élèves en début d'année scolaire.
+    Supporte deux formats :
+    - ProEco (.xlsx) : colonnes Nom Elève, Prénom Elève, Année, Classe, etc.
+    - CSV manuel    : colonnes prenom, nom, classe, option, annee_scolaire
     """
 
     ctx = {
@@ -393,93 +395,192 @@ def admin_importer_eleves():
         flash("Aucun fichier sélectionné.", "erreur")
         return render_template("admin_importer_eleves.html", **ctx)
 
-    if not fichier.filename.lower().endswith(".csv"):
-        flash("Le fichier doit être au format .csv", "erreur")
-        return render_template("admin_importer_eleves.html", **ctx)
-
-    try:
-        contenu = fichier.read().decode("utf-8-sig")
-        lecteur = csv.DictReader(io.StringIO(contenu))
-
-        colonnes_requises = {"prenom", "nom", "classe", "annee_scolaire"}
-        if not colonnes_requises.issubset(set(lecteur.fieldnames or [])):
-            manquantes = colonnes_requises - set(lecteur.fieldnames or [])
-            flash(
-                f"Colonnes manquantes : {', '.join(manquantes)}. "
-                "Colonnes attendues : prenom, nom, classe, option, annee_scolaire",
-                "erreur"
-            )
-            return render_template("admin_importer_eleves.html", **ctx)
-
-        lignes = list(lecteur)
-
-    except UnicodeDecodeError:
-        flash(
-            "Erreur d'encodage. Enregistrez le fichier en UTF-8 "
-            "(Excel : Enregistrer sous → CSV UTF-8).",
-            "erreur"
-        )
-        return render_template("admin_importer_eleves.html", **ctx)
-
-    if not lignes:
-        flash("Le fichier CSV est vide.", "erreur")
-        return render_template("admin_importer_eleves.html", **ctx)
-
-    # ── Import via SQLAlchemy ────────────────────────────────────
     nb_inseres    = 0
     nb_mis_a_jour = 0
     nb_erreurs    = 0
     erreurs_detail = []
 
-    try:
-        for i, ligne in enumerate(lignes, start=2):
-            prenom         = ligne.get("prenom", "").strip()
-            nom            = ligne.get("nom", "").strip()
-            classe         = ligne.get("classe", "").strip()
-            option          = ligne.get("option", "").strip() or None
-            annee_scolaire  = ligne.get("annee_scolaire", "").strip()
-            matricule_fase  = ligne.get("matricule_fase", "").strip() or None
+    # ── Format ProEco (.xlsx) ─────────────────────────────────
+    if fichier.filename.lower().endswith(".xlsx"):
 
-            if not all([prenom, nom, classe, annee_scolaire]):
-                nb_erreurs += 1
-                erreurs_detail.append(
-                    f"Ligne {i} ignorée — champs obligatoires manquants : "
-                    f"{prenom!r}, {nom!r}, {classe!r}, {annee_scolaire!r}"
-                )
-                continue
+        # Année scolaire obligatoire pour le format ProEco
+        annee_scolaire = request.form.get("annee_scolaire", "").strip()
+        if not annee_scolaire:
+            flash("L'année scolaire est obligatoire pour l'import ProEco.", "erreur")
+            return render_template("admin_importer_eleves.html", **ctx)
 
-            eleve = Eleve.query.filter_by(
-                prenom=prenom,
-                nom=nom,
-                classe=classe,
-                annee_scolaire=annee_scolaire
-            ).first()
+        try:
+            import openpyxl
 
-            if eleve is None:
-                eleve = Eleve(
+            wb = openpyxl.load_workbook(io.BytesIO(fichier.read()))
+            ws = wb.active
+
+            # Récupère les en-têtes de la première ligne
+            headers = [cell.value for cell in ws[1]]
+
+            # Vérifie que les colonnes requises sont présentes
+            colonnes_requises = {'Nom Elève', 'Prénom Elève', 'Année', 'Classe', 'Matric Info'}
+            if not colonnes_requises.issubset(set(headers)):
+                manquantes = colonnes_requises - set(headers)
+                flash(f"Colonnes manquantes : {', '.join(manquantes)}", "erreur")
+                return render_template("admin_importer_eleves.html", **ctx)
+
+            # Construit un dictionnaire {nom_colonne: index} pour accès rapide
+            idx = {h: i for i, h in enumerate(headers)}
+
+            for i, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+
+                # Ignore les lignes vides
+                if not any(row):
+                    continue
+
+                nom    = str(row[idx['Nom Elève']]    or '').strip()
+                prenom = str(row[idx['Prénom Elève']] or '').strip()
+                annee  = str(row[idx['Année']]         or '').strip()
+                classe_section = str(row[idx['Classe']] or '').strip()
+                matricule = str(row[idx['Matric Info']] or '').strip() or None
+
+                # Option = Sous Groupe + Langue si disponibles
+                # Ex : "SG - A" (Sciences Général - Anglais)
+                sous_groupe = str(row[idx['Sous Groupe']] or '').strip() if 'Sous Groupe' in idx else ''
+                langue      = str(row[idx['Langue I  2e langue ']] or '').strip() if 'Langue I  2e langue ' in idx else ''
+
+                if sous_groupe and langue:
+                    option = f"{sous_groupe} - {langue}"
+                elif sous_groupe:
+                    option = sous_groupe
+                elif langue:
+                    option = langue
+                else:
+                    option = None
+
+                # Classe = Année + espace + Section → ex: "3 A" ou "2C A"
+                classe = f"{annee} {classe_section}".strip() if classe_section else annee
+
+                if not all([nom, prenom, classe]):
+                    nb_erreurs += 1
+                    erreurs_detail.append(f"Ligne {i} ignorée — champs manquants")
+                    continue
+
+                eleve = Eleve.query.filter_by(
                     prenom=prenom,
                     nom=nom,
                     classe=classe,
-                    option=option,
-                    annee_scolaire=annee_scolaire,
-                    matricule_fase=matricule_fase,
-                    actif=True
+                    annee_scolaire=annee_scolaire
+                ).first()
+
+                if eleve is None:
+                    eleve = Eleve(
+                        prenom=prenom,
+                        nom=nom,
+                        classe=classe,
+                        option=option,
+                        annee_scolaire=annee_scolaire,
+                        matricule_fase=matricule,
+                        actif=True
+                    )
+                    db.session.add(eleve)
+                    nb_inseres += 1
+                else:
+                    eleve.option = option
+                    eleve.actif = True
+                    eleve.matricule_fase = matricule
+                    nb_mis_a_jour += 1
+
+            db.session.commit()
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Erreur lors de l'import ProEco : {str(e)}", "erreur")
+            return render_template("admin_importer_eleves.html", **ctx)
+
+    # ── Format CSV manuel ─────────────────────────────────────
+    elif fichier.filename.lower().endswith(".csv"):
+
+        try:
+            contenu = fichier.read().decode("utf-8-sig")
+            lecteur = csv.DictReader(io.StringIO(contenu))
+
+            # Vérifie les colonnes requises
+            colonnes_requises = {"prenom", "nom", "classe", "annee_scolaire"}
+            if not colonnes_requises.issubset(set(lecteur.fieldnames or [])):
+                manquantes = colonnes_requises - set(lecteur.fieldnames or [])
+                flash(
+                    f"Colonnes manquantes : {', '.join(manquantes)}. "
+                    "Colonnes attendues : prenom, nom, classe, option, annee_scolaire",
+                    "erreur"
                 )
-                db.session.add(eleve)
-                nb_inseres += 1
-            else:
-                eleve.option = option
-                eleve.actif = True
-                eleve.matricule_fase = matricule_fase
-                nb_mis_a_jour += 1
+                return render_template("admin_importer_eleves.html", **ctx)
 
-        db.session.commit()
+            lignes = list(lecteur)
 
-    except Exception as e:
-        db.session.rollback()
-        flash(f"Erreur lors de l'import : {str(e)}", "erreur")
+        except UnicodeDecodeError:
+            flash(
+                "Erreur d'encodage. Enregistrez le fichier en UTF-8 "
+                "(Excel : Enregistrer sous → CSV UTF-8).",
+                "erreur"
+            )
+            return render_template("admin_importer_eleves.html", **ctx)
+
+        if not lignes:
+            flash("Le fichier CSV est vide.", "erreur")
+            return render_template("admin_importer_eleves.html", **ctx)
+
+        try:
+            for i, ligne in enumerate(lignes, start=2):
+                prenom        = ligne.get("prenom", "").strip()
+                nom           = ligne.get("nom", "").strip()
+                classe        = ligne.get("classe", "").strip()
+                option        = ligne.get("option", "").strip() or None
+                annee_scolaire = ligne.get("annee_scolaire", "").strip()
+                matricule_fase = ligne.get("matricule_fase", "").strip() or None
+
+                if not all([prenom, nom, classe, annee_scolaire]):
+                    nb_erreurs += 1
+                    erreurs_detail.append(
+                        f"Ligne {i} ignorée — champs obligatoires manquants : "
+                        f"{prenom!r}, {nom!r}, {classe!r}, {annee_scolaire!r}"
+                    )
+                    continue
+
+                eleve = Eleve.query.filter_by(
+                    prenom=prenom,
+                    nom=nom,
+                    classe=classe,
+                    annee_scolaire=annee_scolaire
+                ).first()
+
+                if eleve is None:
+                    eleve = Eleve(
+                        prenom=prenom,
+                        nom=nom,
+                        classe=classe,
+                        option=option,
+                        annee_scolaire=annee_scolaire,
+                        matricule_fase=matricule_fase,
+                        actif=True
+                    )
+                    db.session.add(eleve)
+                    nb_inseres += 1
+                else:
+                    eleve.option = option
+                    eleve.actif = True
+                    eleve.matricule_fase = matricule_fase
+                    nb_mis_a_jour += 1
+
+            db.session.commit()
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Erreur lors de l'import : {str(e)}", "erreur")
+            return render_template("admin_importer_eleves.html", **ctx)
+
+    else:
+        # Format non supporté
+        flash("Format non supporté. Utilisez un fichier .xlsx (ProEco) ou .csv.", "erreur")
         return render_template("admin_importer_eleves.html", **ctx)
 
+    # ── Messages de résultat ──────────────────────────────────
     if nb_inseres > 0 or nb_mis_a_jour > 0:
         flash(
             f"Import terminé : {nb_inseres} élève(s) ajouté(s), "
@@ -1304,7 +1405,7 @@ def parent_reservation_repas():
     Calendrier mensuel de réservation des repas.
     Affiche le mois en cours par défaut, navigation possible.
     Chaque jour cliquable ouvre un pop-up avec les tuiles de repas.
-    Réservation bloquée après 8h00 le matin même.
+    Réservation bloquée après 9h00 le matin même.
     """
     from datetime import date, datetime
     import calendar
@@ -1394,9 +1495,9 @@ def parent_reservation_repas():
         .all()
     )
 
-    # ── Heure limite : 8h00 le matin même ────────────────────
+    # ── Heure limite poru passer une commande : 9h00 le matin même ────────────────────
     maintenant = datetime.now()
-    heure_limite_passee = maintenant.hour >= 8
+    heure_limite_passee = maintenant.hour >= 9
 
     return render_template(
         "reservation_repas.html",
@@ -1422,7 +1523,7 @@ def parent_reserver_repas():
     """
     Enregistre une réservation de repas pour un élève.
     Vérifie :
-    - L'heure limite (8h00 le matin même)
+    - L'heure limite (9h00 le matin même)
     - Que l'élève appartient bien au parent connecté
     - Que le jour n'est pas un congé
     - Que le solde est suffisant
@@ -1450,8 +1551,8 @@ def parent_reserver_repas():
 
     # ── Vérification heure limite ─────────────────────────────
     maintenant = datetime.now()
-    if date_repas == date.today() and maintenant.hour >= 8:
-        flash("Les réservations sont closes depuis 8h00 ce matin.", "erreur")
+    if date_repas == date.today() and maintenant.hour >= 9:
+        flash("Les réservations sont closes depuis 9h00 ce matin.", "erreur")
         return redirect(url_for("main.parent_reservation_repas", mois=mois_str))
 
     if date_repas < date.today():
@@ -1537,7 +1638,7 @@ def parent_reserver_repas():
 def parent_annuler_repas(reservation_id):
     """
     Annule une réservation de repas et rembourse le portefeuille.
-    Annulation possible jusqu'à 8h00 le matin même.
+    Annulation possible jusqu'à 9h00 le matin même.
     """
     from datetime import date, datetime
 
@@ -1558,8 +1659,8 @@ def parent_annuler_repas(reservation_id):
 
     # ── Vérification heure limite ─────────────────────────────
     maintenant = datetime.now()
-    if reservation.date_repas == date.today() and maintenant.hour >= 8:
-        flash("Les annulations sont closes depuis 8h00 ce matin.", "erreur")
+    if reservation.date_repas == date.today() and maintenant.hour >= 9:
+        flash("Les annulations sont closes depuis 9h00 ce matin.", "erreur")
         return redirect(url_for("main.parent_reservation_repas", mois=mois_str))
 
     if reservation.date_repas < date.today():

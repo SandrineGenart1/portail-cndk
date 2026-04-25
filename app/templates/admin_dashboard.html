@@ -105,19 +105,18 @@
 
     {# tile-soon : opacité réduite + cursor:default (style.css) #}
     {# href="#" : lien vide, ne navigue pas #}
-    <a href="#" class="tile tile-amber tile-soon">
+    <a href="{{ url_for('main.admin_calendrier_repas') }}" class="tile tile-amber">
         <div class="tile-icon"><i class="bi bi-calendar3"></i></div>
         <div class="tile-title">Calendrier des repas</div>
-        <div class="tile-desc">Définissez les jours avec repas, les menus et les options disponibles.</div>
-        {# Couleur grisée pour indiquer que la fonctionnalité n'est pas encore disponible #}
-        <div class="tile-arrow" style="color:var(--slate)">Bientôt disponible</div>
+        <div class="tile-desc">Définissez les types de repas, les prix et les périodes de congé.</div>
+        <div class="tile-arrow">Gérer →</div>
     </a>
 
-    <a href="#" class="tile tile-amber tile-soon">
+    <a href="{{ url_for('main.admin_portefeuille') }}" class="tile tile-green">
         <div class="tile-icon"><i class="bi bi-wallet2"></i></div>
         <div class="tile-title">Portefeuilles élèves</div>
-        <div class="tile-desc">Consultez les soldes et l'historique des rechargements par élève.</div>
-        <div class="tile-arrow" style="color:var(--slate)">Bientôt disponible</div>
+        <div class="tile-desc">Consultez les soldes, importez les extraits bancaires et consultez l'historique.</div>
+        <div class="tile-arrow">Gérer →</div>
     </a>
 
 </div>

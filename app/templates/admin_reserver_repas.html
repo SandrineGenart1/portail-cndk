@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{# Hérite de base.html : sidebar, topbar, flash messages inclus automatiquement #}
+
+{% block title %}Réservation manuelle — Admin CNDK{% endblock %}
+{% block eyebrow %}Administration — Repas{% endblock %}
+{% block page_title %}Réservation manuelle{% endblock %}
+{% block page_subtitle %}Réservez un repas manuellement pour un élève.{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('main.admin_reservations_jour') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Réservations du jour
+</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-body">
+
+        <form action="{{ url_for('main.admin_reserver_repas') }}" method="POST">
+
+            {# Sélecteur d'élève avec recherche #}
+            <div class="mb-3">
+                <label for="eleve_id" class="form-label fw-semibold small"
+                       style="color:var(--navy)">
+                    Élève *
+                </label>
+                {# Liste déroulante groupée par classe #}
+                <select name="eleve_id" id="eleve_id"
+                        class="form-select" required>
+                    <option value="">— Sélectionnez un élève —</option>
+                    {% set classe_courante = namespace(value='') %}
+                    {% for eleve in eleves %}
+                        {# Ajoute un séparateur de groupe quand la classe change #}
+                        {% if eleve.classe != classe_courante.value %}
+                            {% if classe_courante.value != '' %}
+                            </optgroup>
+                            {% endif %}
+                            <optgroup label="Classe {{ eleve.classe }}">
+                            {% set classe_courante.value = eleve.classe %}
+                        {% endif %}
+                        <option value="{{ eleve.id }}">
+                            {{ eleve.nom }} {{ eleve.prenom }}
+                            {% if eleve.option %}({{ eleve.option }}){% endif %}
+                        </option>
+                    {% endfor %}
+                    {% if classe_courante.value != '' %}
+                    </optgroup>
+                    {% endif %}
+                </select>
+            </div>
+
+            {# Sélecteur de type de repas #}
+            <div class="mb-3">
+                <label for="type_repas_id" class="form-label fw-semibold small"
+                       style="color:var(--navy)">
+                    Type de repas *
+                </label>
+                <select name="type_repas_id" id="type_repas_id"
+                        class="form-select" required>
+                    <option value="">— Sélectionnez un repas —</option>
+
+                    {# Repas chauds d'abord #}
+                    {% set repas_chauds = types_repas | selectattr('categorie', 'eq', 'chaud') | list %}
+                    {% set sandwiches   = types_repas | selectattr('categorie', 'eq', 'sandwich') | list %}
+
+                    {% if repas_chauds %}
+                    <optgroup label="🍽️ Repas chauds">
+                        {% for t in repas_chauds %}
+                        <option value="{{ t.id }}">
+                            {{ t.nom }} — {{ "%.2f"|format(t.prix|float) }} €
+                        </option>
+                        {% endfor %}
+                    </optgroup>
+                    {% endif %}
+
+                    {% if sandwiches %}
+                    <optgroup label="🥪 Sandwiches">
+                        {% for t in sandwiches %}
+                        <option value="{{ t.id }}">
+                            {{ t.nom }} — {{ "%.2f"|format(t.prix|float) }} €
+                        </option>
+                        {% endfor %}
+                    </optgroup>
+                    {% endif %}
+                </select>
+            </div>
+
+            {# Date du repas #}
+            <div class="mb-4">
+                <label for="date_repas" class="form-label fw-semibold small"
+                       style="color:var(--navy)">
+                    Date du repas *
+                </label>
+                {# Pré-remplit avec aujourd'hui #}
+                <input type="date" id="date_repas" name="date_repas"
+                       class="form-control"
+                       value="{{ today }}"
+                       style="max-width:200px"
+                       required>
+            </div>
+
+            {# Info : pas de vérification d'heure ni de solde côté admin #}
+            <div class="alert alert-info small mb-4">
+                <i class="bi bi-info-circle"></i>
+                La réservation manuelle ignore la limite horaire de 9h00.
+                Le portefeuille est débité uniquement si le solde est suffisant.
+            </div>
+
+            {# Boutons #}
+            <div class="d-flex gap-3 align-items-center">
+                <button type="submit" class="btn btn-navy">
+                    <i class="bi bi-check-circle"></i> Réserver
+                </button>
+                <a href="{{ url_for('main.admin_reservations_jour') }}"
+                   class="btn btn-outline-secondary">
+                    Annuler
+                </a>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+{% endblock %}

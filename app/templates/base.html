@@ -126,9 +126,9 @@
                 <i class="bi bi-wallet2"></i> Portefeuilles élèves
             </a>
 
-            <a href="#" class="sidebar-link">
+            <a href="{{ url_for('main.admin_reservations_jour') }}"
+                class="sidebar-link {% if active == 'reservations_jour' %}active{% endif %}">
                 <i class="bi bi-bar-chart"></i> Réservations du jour
-                <span class="badge-soon">Bientôt</span>
             </a>
 
             <div class="nav-divider"></div>
@@ -167,26 +167,16 @@
 
         <!-- FOOTER SIDEBAR : affiche l'utilisateur connecté et son rôle -->
         <div class="sidebar-footer">
-
-            <!-- Nom de l'utilisateur connecté, passé par la route Flask -->
-            <!-- TODO : sera remplacé par flask_login.current_user.prenom + nom -->
             {% if current_user_name %}
             <div class="user-name">{{ current_user_name }}</div>
             {% endif %}
-
-            <!-- Badge de rôle coloré : amber pour admin, vert pour parent -->
-            <!-- La classe CSS "admin" ou "parent" vient de style.css -->
             <span class="role-badge {{ role }}">
-                {% if role == 'admin' %}Administrateur{% else %}Parent{% endif %}
+             {% if role == 'admin' %}Administrateur{% else %}Parent{% endif %}
             </span>
-
-            <!-- Lien de déconnexion -->
-            <!-- TODO : pointera vers la route Flask de déconnexion flask_login -->
-            <div style="margin-top:0.5rem">
-                <a href="#" style="color:rgba(255,255,255,0.3); font-size:0.75rem; text-decoration:none;">
-                    <i class="bi bi-box-arrow-right"></i> Se déconnecter
-                </a>
-            </div>
+            <a href="{{ url_for('main.logout') }}"
+                class="btn btn-outline-light btn-sm w-100 mt-2">
+                <i class="bi bi-box-arrow-right"></i> Se déconnecter
+            </a>
         </div>
 
     </aside>
@@ -217,7 +207,11 @@
             <!-- Ex : bouton "← Retour aux activités" dans admin_nouvelle_activite.html -->
             <!-- d-flex gap-2 : classes Bootstrap pour aligner les boutons horizontalement -->
             <div class="d-flex gap-2 align-items-center flex-shrink-0">
-                {% block topbar_actions %}{% endblock %}
+                 {% block topbar_actions %}{% endblock %}
+                 <a href="{{ url_for('main.logout') }}"
+                 class="btn btn-outline-secondary btn-sm">
+                     <i class="bi bi-box-arrow-right"></i> Se déconnecter
+                </a>
             </div>
         </header>
 

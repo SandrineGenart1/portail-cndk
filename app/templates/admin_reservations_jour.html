@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{# Hérite de base.html : sidebar, topbar, flash messages inclus automatiquement #}
+
+{% block title %}Réservations du {{ date_jour.strftime('%d/%m/%Y') }}{% endblock %}
+{% block eyebrow %}Administration — Repas{% endblock %}
+{% block page_title %}Réservations du {{ date_jour.strftime('%d/%m/%Y') }}{% endblock %}
+{% block page_subtitle %}Liste des repas réservés pour ce jour.{% endblock %}
+
+{% block topbar_actions %}
+{# Bouton pour ajouter une réservation manuelle #}
+<a href="{{ url_for('main.admin_reserver_repas') }}" class="btn btn-amber">
+    <i class="bi bi-plus-circle"></i> Ajouter un repas
+</a>
+<a href="{{ url_for('main.admin_dashboard') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Tableau de bord
+</a>
+{% endblock %}
+
+{% block content %}
+
+{# ── Navigation par date ──────────────────────────────────── #}
+<div class="d-flex align-items-center gap-3 mb-4">
+
+    {# Jour précédent #}
+    <a href="{{ url_for('main.admin_reservations_jour', date=date_precedent) }}"
+       class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-chevron-left"></i>
+    </a>
+
+    {# Sélecteur de date — navigation directe vers un jour #}
+    <form method="GET" action="{{ url_for('main.admin_reservations_jour') }}"
+          class="d-flex align-items-center gap-2">
+        <input type="date" name="date"
+               value="{{ date_jour.isoformat() }}"
+               class="form-control form-control-sm"
+               style="max-width:180px"
+               onchange="this.form.submit()">
+    </form>
+
+    {# Jour suivant #}
+    <a href="{{ url_for('main.admin_reservations_jour', date=date_suivant) }}"
+       class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-chevron-right"></i>
+    </a>
+
+    {# Retour à aujourd'hui #}
+    <a href="{{ url_for('main.admin_reservations_jour') }}"
+       class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-calendar-today"></i> Aujourd'hui
+    </a>
+
+    {# Total du jour #}
+    <span class="badge bg-secondary ms-2" style="font-size:0.85rem">
+        {{ nb_total }} réservation(s) au total
+    </span>
+</div>
+
+{# ── Layout deux colonnes ─────────────────────────────────── #}
+<div class="row g-4">
+
+    {# ── Colonne gauche : Repas chauds ────────────────────── #}
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-body p-0">
+
+                {# En-tête avec titre + bouton PDF #}
+                <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+                    <h3 class="fw-bold mb-0" style="font-size:1rem;color:var(--navy)">
+                        🍽️ Repas chauds
+                        <span class="badge bg-secondary ms-2">{{ repas_chauds|length }}</span>
+                    </h3>
+                    {# Bouton PDF repas chauds — pour les éducateurs #}
+                    <a href="{{ url_for('main.admin_reservations_jour_pdf',
+                                type_liste='chauds',
+                                date=date_jour.isoformat()) }}"
+                       class="btn btn-navy btn-sm">
+                        <i class="bi bi-file-pdf"></i> PDF
+                    </a>
+                </div>
+
+                {% if repas_chauds %}
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Élève</th>
+                            <th>Classe</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in repas_chauds %}
+                        <tr>
+                            <td class="text-muted">{{ loop.index }}</td>
+                            <td>
+                                <strong>{{ r.eleve.nom }}</strong>
+                                {{ r.eleve.prenom }}
+                            </td>
+                            <td>{{ r.eleve.classe }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="p-3 text-muted small">
+                    <i class="bi bi-info-circle"></i>
+                    Aucun repas chaud réservé ce jour.
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+
+    {# ── Colonne droite : Sandwiches ──────────────────────── #}
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-body p-0">
+
+                {# En-tête avec titre + bouton PDF #}
+                <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+                    <h3 class="fw-bold mb-0" style="font-size:1rem;color:var(--navy)">
+                        🥪 Sandwiches
+                        {# Compte total des sandwiches #}
+                        {% set nb_sandwiches = sandwiches_par_type.values() | sum(attribute='__len__') %}
+                        <span class="badge bg-secondary ms-2">{{ nb_sandwiches }}</span>
+                    </h3>
+                    {# Bouton PDF sandwiches — pour les cuisines #}
+                    <a href="{{ url_for('main.admin_reservations_jour_pdf',
+                                type_liste='sandwiches',
+                                date=date_jour.isoformat()) }}"
+                       class="btn btn-navy btn-sm">
+                        <i class="bi bi-file-pdf"></i> PDF
+                    </a>
+                </div>
+
+                {% if sandwiches_par_type %}
+                    {# Affiche une section par type de sandwich #}
+                    {% for nom_type, lignes in sandwiches_par_type.items() %}
+
+                    {# Titre du type de sandwich avec comptage #}
+                    <div class="px-3 py-2 border-bottom"
+                         style="background:#F8FAFC;font-size:0.85rem;font-weight:600;color:var(--navy)">
+                        {{ nom_type }}
+                        <span class="badge bg-secondary ms-1">{{ lignes|length }}</span>
+                    </div>
+
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Élève</th>
+                                <th>Classe</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in lignes %}
+                            <tr>
+                                <td class="text-muted">{{ loop.index }}</td>
+                                <td>
+                                    <strong>{{ r.eleve.nom }}</strong>
+                                    {{ r.eleve.prenom }}
+                                </td>
+                                <td>{{ r.eleve.classe }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    {% endfor %}
+
+                {% else %}
+                <div class="p-3 text-muted small">
+                    <i class="bi bi-info-circle"></i>
+                    Aucun sandwich réservé ce jour.
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

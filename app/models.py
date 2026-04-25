@@ -1,8 +1,9 @@
 from app.extensions import db
 from sqlalchemy.dialects.postgresql import ARRAY
+from flask_login import UserMixin
 
 #______Classe UtilisateurParent_____________
-class UtilisateurParent(db.Model):
+class UtilisateurParent(UserMixin,db.Model):
     __tablename__ = "utilisateurs_parents"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -28,23 +29,40 @@ class UtilisateurParent(db.Model):
         cascade="all, delete-orphan"
     )
 
+    def get_role(self):
+        """Retourne le rôle de l'utilisateur — toujours 'parent' pour cette classe."""
+        return "parent"
+    
+    def get_id(self):
+        """Flask-Login utilise cette méthode pour stocker l'ID en session."""
+        return f"parent_{self.id}"
+    
     def __repr__(self):
         return f"<UtilisateurParent {self.prenom} {self.nom}>"
 
 #______Classe UtilisateurStaff_____________
-class UtilisateurStaff(db.Model):
+class UtilisateurStaff(UserMixin,db.Model):
     __tablename__ = "utilisateurs_staff"
 
     id = db.Column(db.Integer, primary_key=True)
     prenom = db.Column(db.String(50), nullable=False)
     nom = db.Column(db.String(50), nullable=False)
     email = db.Column(db.String(150), nullable=False, unique=True)
+    password_hash = db.Column(db.String(255), nullable=True)
     role = db.Column(db.String(30), nullable=False)
     actif = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
 
     activites_creees = db.relationship("Activite", back_populates="createur")
-
+    
+    def get_role(self):
+        """Retourne le rôle du staff : 'admin', 'economat' ou 'educateur'."""
+        return self.role
+    
+    def get_id(self):
+        """Flask-Login utilise cette méthode pour stocker l'ID en session."""
+        return f"staff_{self.id}"
+    
     def __repr__(self):
         return f"<UtilisateurStaff {self.prenom} {self.nom} ({self.role})>"
 

@@ -19,6 +19,73 @@ from app.forms import ActiviteForm    # Formulaire WTForms pour la création d'a
 
 main = Blueprint("main", __name__)
 
+# ─────────────────────────────────────────────────────────────
+# AUTHENTIFICATION — LOGIN / LOGOUT
+# ─────────────────────────────────────────────────────────────
+
+@main.route("/login", methods=["GET", "POST"])
+def login():
+    """
+    Page de connexion.
+    Accepte les comptes parents et staff (admin, economat, educateur).
+    Redirige vers la bonne page selon le rôle après connexion.
+    """
+    from flask_login import login_user, current_user
+    from werkzeug.security import check_password_hash
+    from app.models import UtilisateurParent, UtilisateurStaff
+
+    # Si déjà connecté → redirige directement
+    if current_user.is_authenticated:
+        if current_user.get_role() == "parent":
+            return redirect(url_for("main.parent_reservation_repas"))
+        else:
+            return redirect(url_for("main.admin_dashboard"))
+
+    erreur = None
+
+    if request.method == "POST":
+        email    = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "").strip()
+
+        if not email or not password:
+            erreur = "Email et mot de passe obligatoires."
+        else:
+            # Cherche d'abord dans les parents, puis dans le staff
+            utilisateur = (
+                UtilisateurParent.query.filter_by(email=email, actif=True).first()
+                or
+                UtilisateurStaff.query.filter_by(email=email, actif=True).first()
+            )
+
+            if utilisateur is None:
+                erreur = "Email ou mot de passe incorrect."
+            elif not check_password_hash(utilisateur.password_hash, password):
+                erreur = "Email ou mot de passe incorrect."
+            else:
+                # Connexion réussie
+                login_user(utilisateur, remember=True)
+
+                # Redirige selon le rôle
+                role = utilisateur.get_role()
+                if role == "parent":
+                    return redirect(url_for("main.parent_reservation_repas"))
+                else:
+                    return redirect(url_for("main.admin_dashboard"))
+
+    return render_template(
+        "login.html",
+        erreur=erreur
+    )
+
+
+@main.route("/logout")
+def logout():
+    """Déconnecte l'utilisateur et redirige vers la page de login."""
+    from flask_login import logout_user
+    logout_user()
+    flash("Vous avez été déconnecté.", "info")
+    return redirect(url_for("main.login"))
+
 
 # ─────────────────────────────────────────────────────────────
 # TABLEAU DE BORD ADMIN
@@ -593,6 +660,7 @@ def admin_importer_eleves():
             flash(detail, "erreur")
 
     return redirect(url_for("main.admin_importer_eleves"))
+
 # ─────────────────────────────────────────────────────────────
 # EXPORT PAIEMENTS — À ajouter dans routes.py
 # ─────────────────────────────────────────────────────────────
@@ -789,7 +857,153 @@ def _construire_requete_export(activite_id, classe, statut, date_debut, date_fin
 
     return query.all()
 
+# ─────────────────────────────────────────────────────────────
+# RÉSERVATION MANUELLE REPAS — ADMIN
+# ─────────────────────────────────────────────────────────────
 
+@main.route("/admin/repas/reserver", methods=["GET", "POST"])
+def admin_reserver_repas():
+    """
+    Permet à l'admin de réserver manuellement un repas pour un élève.
+    Utile pour les élèves qui n'ont pas pu réserver en ligne.
+    Pas de vérification d'heure limite ni de solde côté admin.
+    """
+    from datetime import date, datetime
+
+    # Récupère tous les élèves actifs pour le sélecteur
+    eleves = (
+        Eleve.query
+        .filter(Eleve.actif == True)
+        .order_by(Eleve.classe, Eleve.nom, Eleve.prenom)
+        .all()
+    )
+
+    # Récupère tous les types de repas actifs
+    types_repas = (
+        TypeRepas.query
+        .filter(TypeRepas.actif == True)
+        .order_by(TypeRepas.categorie.desc(), TypeRepas.nom)
+        .all()
+    )
+
+    if request.method == "POST":
+        eleve_id      = request.form.get("eleve_id", type=int)
+        type_repas_id = request.form.get("type_repas_id", type=int)
+        date_str      = request.form.get("date_repas", "").strip()
+
+        # ── Validation ────────────────────────────────────────
+        erreurs = []
+        if not eleve_id:
+            erreurs.append("Sélectionnez un élève.")
+        if not type_repas_id:
+            erreurs.append("Sélectionnez un type de repas.")
+        if not date_str:
+            erreurs.append("La date est obligatoire.")
+
+        if erreurs:
+            for e in erreurs:
+                flash(e, "erreur")
+            return render_template(
+                "admin_reserver_repas.html",
+                eleves=eleves,
+                types_repas=types_repas,
+                today=date.today().isoformat(),
+                role="admin",
+                active="calendrier_repas",
+                current_user_name="Administrateur (test)"
+            )
+
+        try:
+            date_repas = date.fromisoformat(date_str)
+        except ValueError:
+            flash("Date invalide.", "erreur")
+            return render_template(
+                "admin_reserver_repas.html",
+                eleves=eleves,
+                types_repas=types_repas,
+                today=date.today().isoformat(),
+                role="admin",
+                active="calendrier_repas",
+                current_user_name="Administrateur (test)"
+            )
+
+        eleve      = Eleve.query.get_or_404(eleve_id)
+        type_repas = TypeRepas.query.get_or_404(type_repas_id)
+
+        # ── Vérification doublon ──────────────────────────────
+        existe = ReservationRepas.query.filter_by(
+            eleve_id=eleve_id,
+            date_repas=date_repas,
+            statut="confirme"
+        ).first()
+
+        if existe:
+            flash(
+                f"{eleve.prenom} {eleve.nom} a déjà un repas réservé "
+                f"le {date_repas.strftime('%d/%m/%Y')} "
+                f"({existe.type_repas.nom}).",
+                "erreur"
+            )
+            return render_template(
+                "admin_reserver_repas.html",
+                eleves=eleves,
+                types_repas=types_repas,
+                role="admin",
+                today=date.today().isoformat(),
+                active="calendrier_repas",
+                current_user_name="Administrateur (test)"
+            )
+
+        # ── Création de la réservation ────────────────────────
+        reservation = ReservationRepas(
+            eleve_id=eleve_id,
+            type_repas_id=type_repas_id,
+            date_repas=date_repas,
+            montant=type_repas.prix,
+            statut="confirme"
+        )
+        db.session.add(reservation)
+
+        # ── Débit du portefeuille si solde suffisant ──────────
+        # L'admin peut réserver même si solde insuffisant
+        # mais on débite quand même si le solde le permet
+        if float(eleve.solde_portefeuille) >= float(type_repas.prix):
+            eleve.solde_portefeuille = (
+                float(eleve.solde_portefeuille) - float(type_repas.prix)
+            )
+            mouvement = MouvementPortefeuille(
+                eleve_id=eleve_id,
+                montant=type_repas.prix,
+                type="debit",
+                motif=f"Réservation manuelle admin — "
+                      f"{type_repas.nom} — "
+                      f"{date_repas.strftime('%d/%m/%Y')}"
+            )
+            db.session.add(mouvement)
+            debit_info = f" — {float(type_repas.prix):.2f}€ débité du portefeuille"
+        else:
+            debit_info = " — solde insuffisant, portefeuille non débité"
+
+        db.session.commit()
+
+        flash(
+            f"Repas « {type_repas.nom} » réservé pour "
+            f"{eleve.prenom} {eleve.nom} "
+            f"le {date_repas.strftime('%d/%m/%Y')}"
+            f"{debit_info}.",
+            "succes"
+        )
+        return redirect(url_for("main.admin_reserver_repas"))
+
+    return render_template(
+        "admin_reserver_repas.html",
+        eleves=eleves,
+        types_repas=types_repas,
+        today=date.today().isoformat(),
+        role="admin",
+        active="calendrier_repas",
+        current_user_name="Administrateur (test)"
+    )
 # ─────────────────────────────────────────────────────────────
 # EXPORT BOB50 — À ajouter dans routes.py
 # ─────────────────────────────────────────────────────────────
@@ -1394,8 +1608,190 @@ def admin_importer_conges_csv():
 
     return redirect(url_for("main.admin_calendrier_repas"))
 
+# ─────────────────────────────────────────────────────────────
+# RÉSERVATIONS DU JOUR — ADMIN
+# ─────────────────────────────────────────────────────────────
 
-    # ─────────────────────────────────────────────────────────────
+@main.route("/admin/repas/jour")
+def admin_reservations_jour():
+    """
+    Liste des réservations pour un jour donné.
+    Par défaut : aujourd'hui.
+    Navigation par date via paramètre GET ?date=YYYY-MM-DD
+    Deux sections : repas chauds et sandwiches.
+    """
+    from datetime import date, timedelta
+
+    # Date sélectionnée — aujourd'hui par défaut
+    date_str = request.args.get("date", "")
+    try:
+        date_jour = date.fromisoformat(date_str) if date_str else date.today()
+    except ValueError:
+        date_jour = date.today()
+
+    # Navigation jour précédent / suivant
+    date_precedent = (date_jour - timedelta(days=1)).isoformat()
+    date_suivant   = (date_jour + timedelta(days=1)).isoformat()
+
+    # Récupère toutes les réservations confirmées pour ce jour
+    # Jointes avec Eleve et TypeRepas pour avoir toutes les infos
+    reservations = (
+        ReservationRepas.query
+        .join(Eleve, ReservationRepas.eleve_id == Eleve.id)
+        .join(TypeRepas, ReservationRepas.type_repas_id == TypeRepas.id)
+        .filter(ReservationRepas.date_repas == date_jour)
+        .filter(ReservationRepas.statut == "confirme")
+        .order_by(Eleve.classe, Eleve.nom, Eleve.prenom)
+        .all()
+    )
+
+    # Sépare repas chauds et sandwiches
+    repas_chauds = [r for r in reservations if r.type_repas.categorie == "chaud"]
+    sandwiches   = [r for r in reservations if r.type_repas.categorie == "sandwich"]
+
+    # Groupe les sandwiches par type pour affichage
+    # { "Sandwich thon": [reservation1, reservation2], ... }
+    sandwiches_par_type = {}
+    for r in sandwiches:
+        nom_type = r.type_repas.nom
+        if nom_type not in sandwiches_par_type:
+            sandwiches_par_type[nom_type] = []
+        sandwiches_par_type[nom_type].append(r)
+
+    return render_template(
+        "admin_reservations_jour.html",
+        date_jour=date_jour,
+        date_precedent=date_precedent,
+        date_suivant=date_suivant,
+        repas_chauds=repas_chauds,
+        sandwiches_par_type=sandwiches_par_type,
+        nb_total=len(reservations),
+        role="admin",
+        active="reservations_jour",
+        current_user_name="Administrateur (test)"
+    )
+
+
+@main.route("/admin/repas/jour/pdf/<string:type_liste>")
+def admin_reservations_jour_pdf(type_liste):
+    """
+    Génère un PDF pour la liste du jour.
+    type_liste : "chauds" ou "sandwiches"
+    Date via paramètre GET ?date=YYYY-MM-DD
+    """
+    from datetime import date
+    import io
+
+    date_str = request.args.get("date", "")
+    try:
+        date_jour = date.fromisoformat(date_str) if date_str else date.today()
+    except ValueError:
+        date_jour = date.today()
+
+    # Récupère les réservations selon le type
+    reservations = (
+        ReservationRepas.query
+        .join(Eleve, ReservationRepas.eleve_id == Eleve.id)
+        .join(TypeRepas, ReservationRepas.type_repas_id == TypeRepas.id)
+        .filter(ReservationRepas.date_repas == date_jour)
+        .filter(ReservationRepas.statut == "confirme")
+        .filter(TypeRepas.categorie == ("chaud" if type_liste == "chauds" else "sandwich"))
+        .order_by(Eleve.classe, Eleve.nom, Eleve.prenom)
+        .all()
+    )
+
+    # Génère le HTML du PDF
+    titre = "Repas chauds" if type_liste == "chauds" else "Sandwiches"
+
+    # Groupe par type si sandwiches
+    if type_liste == "sandwiches":
+        groupes = {}
+        for r in reservations:
+            nom_type = r.type_repas.nom
+            if nom_type not in groupes:
+                groupes[nom_type] = []
+            groupes[nom_type].append(r)
+    else:
+        groupes = {"Repas chaud": reservations}
+
+    html = f"""
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body {{ font-family: Arial, sans-serif; font-size: 12px; margin: 20px; }}
+            h1 {{ color: #1E3A5F; font-size: 16px; margin-bottom: 5px; }}
+            h2 {{ color: #1E3A5F; font-size: 13px; margin-top: 15px; margin-bottom: 5px;
+                  border-bottom: 1px solid #ccc; padding-bottom: 3px; }}
+            .date {{ color: #64748B; font-size: 11px; margin-bottom: 15px; }}
+            table {{ width: 100%; border-collapse: collapse; margin-bottom: 10px; }}
+            th {{ background: #1E3A5F; color: white; padding: 6px 8px;
+                  text-align: left; font-size: 11px; }}
+            td {{ padding: 5px 8px; border-bottom: 1px solid #E2E8F0; font-size: 11px; }}
+            tr:nth-child(even) {{ background: #F8FAFC; }}
+            .total {{ font-weight: bold; color: #1E3A5F; margin-top: 5px; }}
+            .footer {{ margin-top: 20px; font-size: 10px; color: #64748B; }}
+        </style>
+    </head>
+    <body>
+        <h1>Liste {titre} — {date_jour.strftime('%d/%m/%Y')}</h1>
+        <div class="date">Imprimé le {date.today().strftime('%d/%m/%Y')} — Collège Notre-Dame de Kain</div>
+    """
+
+    for nom_type, lignes in groupes.items():
+        html += f"<h2>{nom_type} ({len(lignes)})</h2>"
+        html += """
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Nom</th>
+                    <th>Prénom</th>
+                    <th>Classe</th>
+                </tr>
+            </thead>
+            <tbody>
+        """
+        for i, r in enumerate(lignes, start=1):
+            html += f"""
+                <tr>
+                    <td>{i}</td>
+                    <td>{r.eleve.nom}</td>
+                    <td>{r.eleve.prenom}</td>
+                    <td>{r.eleve.classe}</td>
+                </tr>
+            """
+        html += f"""
+            </tbody>
+        </table>
+        <div class="total">Total : {len(lignes)} élève(s)</div>
+        """
+
+    html += f"""
+        <div class="footer">
+            Total général : {len(reservations)} repas — {titre}
+        </div>
+    </body>
+    </html>
+    """
+
+    # Génère le PDF avec WeasyPrint
+    try:
+        from weasyprint import HTML
+        pdf_bytes = HTML(string=html).write_pdf()
+
+        nom_fichier = f"repas_{type_liste}_{date_jour.strftime('%Y%m%d')}.pdf"
+        return send_file(
+            io.BytesIO(pdf_bytes),
+            mimetype="application/pdf",
+            download_name=nom_fichier,
+            as_attachment=True
+        )
+    except ImportError:
+        # WeasyPrint pas installé — retourne le HTML directement
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+# ─────────────────────────────────────────────────────────────
 # RÉSERVATION REPAS — PARENT
 # ─────────────────────────────────────────────────────────────
 

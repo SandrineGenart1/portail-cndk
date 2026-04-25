@@ -4,10 +4,9 @@
 {% block title %}Import élèves — Admin CNDK{% endblock %}
 {% block eyebrow %}Administration — Élèves{% endblock %}
 {% block page_title %}Import des élèves{% endblock %}
-{% block page_subtitle %}Importez la liste des élèves depuis un fichier CSV exporté de ProEco.{% endblock %}
+{% block page_subtitle %}Importez la liste des élèves depuis un fichier CSV ou ProEco (.xlsx).{% endblock %}
 
 {% block topbar_actions %}
-{# btn-outline-secondary : bouton Bootstrap avec bordure grise #}
 <a href="{{ url_for('main.admin_dashboard') }}" class="btn btn-outline-secondary">
     <i class="bi bi-arrow-left"></i> Tableau de bord
 </a>
@@ -15,59 +14,64 @@
 
 {% block content %}
 
-{# card + card-body : bloc blanc avec ombre légère défini dans style.css #}
 <div class="card">
     <div class="card-body">
 
-        {# enctype="multipart/form-data" : OBLIGATOIRE pour les formulaires avec upload de fichier #}
-        {# Sans cet attribut, le fichier ne serait pas transmis au serveur #}
+        {# enctype="multipart/form-data" : OBLIGATOIRE pour l'upload de fichier #}
         <form action="{{ url_for('main.admin_importer_eleves') }}"
               method="POST"
               enctype="multipart/form-data"
               id="formImport">
 
-            <!-- Zone de dépôt du fichier CSV -->
-            {# import-zone : notre classe CSS dans style.css #}
-            {# onclick : ouvre le sélecteur de fichier natif du navigateur au clic n'importe où dans la zone #}
+            {# Zone de dépôt du fichier #}
             <div class="import-zone" id="dropZone"
                  onclick="document.getElementById('fichier_csv').click()">
 
-                {# Icône Bootstrap Icons centrée #}
-                <i class="bi bi-folder2-open" style="font-size:2.5rem;color:var(--navy);margin-bottom:0.75rem;display:block"></i>
+                <i class="bi bi-folder2-open"
+                   style="font-size:2.5rem;color:var(--navy);margin-bottom:0.75rem;display:block"></i>
 
                 <div>
-                    {# label-file : texte souligné cliquable, style dans style.css #}
-                    <label class="label-file">Choisir un fichier CSV</label>
+                    <label class="label-file">Choisir un fichier</label>
                     ou glissez-déposez ici
                 </div>
 
-                <div class="hint">Formats acceptés : .csv — Encodage : UTF-8</div>
+                <div class="hint">
+                    Formats acceptés : .csv (manuel) ou .xlsx (ProEco) — Encodage : UTF-8
+                </div>
 
-                {# nomFichier : affiché par JavaScript après sélection du fichier #}
                 <div class="fichier-selectionne" id="nomFichier" style="display:none"></div>
 
-                {# Input file caché : déclenché par le onclick de la zone #}
-                {# accept=".csv" : filtre les fichiers dans le sélecteur (uniquement .csv) #}
-                {# onchange : appelle afficherNom() dès qu'un fichier est sélectionné #}
+                {# accept : autorise .csv et .xlsx #}
                 <input type="file" id="fichier_csv" name="fichier_csv"
-                       accept=".csv" onchange="afficherNom(this)">
+                       accept=".csv,.xlsx" onchange="afficherNom(this)">
             </div>
 
-            <!-- Format CSV attendu -->
-            {# format-box : notre classe CSS dans style.css #}
+            {# Année scolaire — HORS du d-flex, au-dessus des boutons #}
+            <div class="mt-3 mb-3">
+                <label for="annee_scolaire"
+                       class="form-label fw-semibold small"
+                       style="color:var(--navy)">
+                    Année scolaire *
+                </label>
+                <input type="text" id="annee_scolaire" name="annee_scolaire"
+                       class="form-control"
+                       placeholder="Ex : 2025-2026"
+                       style="max-width:200px">
+                <small class="text-muted">
+                    Obligatoire pour l'import ProEco (.xlsx)
+                </small>
+            </div>
+
+            {# Format CSV attendu #}
             <div class="format-box mt-3">
                 <h3>
                     <i class="bi bi-file-earmark-text"></i> Format CSV attendu
                 </h3>
-
-                {# code : balise HTML pour afficher du texte en police monospace #}
-                {# Montre un exemple concret du format de fichier attendu #}
                 <code>prenom,nom,classe,option,annee_scolaire,matricule_fase
 Marie,Dupont,3A,Latin,2025-2026,12345678
 Paul,Martin,3A,Sciences,2025-2026,23456789
 Julie,Simon,5B,,2025-2026,34567890
 Lucas,Bernard,1B,Technique,2025-2026,</code>
-
                 <ul>
                     <li><strong>prenom, nom, classe, annee_scolaire</strong> — obligatoires</li>
                     <li><strong>option</strong> — optionnel, laisser vide si pas d'option</li>
@@ -77,8 +81,7 @@ Lucas,Bernard,1B,Technique,2025-2026,</code>
                 </ul>
             </div>
 
-            <!-- Avertissement -->
-            {# warning-box : notre classe CSS dans style.css (bordure amber) #}
+            {# Avertissement #}
             <div class="warning-box">
                 <strong>
                     <i class="bi bi-exclamation-triangle"></i>
@@ -88,24 +91,19 @@ Lucas,Bernard,1B,Technique,2025-2026,</code>
                 et met à jour l'option des élèves déjà présents pour la même année scolaire.
             </div>
 
-            <!-- Boutons d'action -->
-            {# d-flex gap-3 align-items-center mt-4 : flexbox Bootstrap avec espacement #}
+            {# Boutons d'action #}
             <div class="d-flex gap-3 align-items-center mt-4">
-
-                {# btn-navy : notre classe CSS (fond navy) #}
-                {# disabled : bouton grisé par défaut, activé par JavaScript après sélection du fichier #}
                 <button type="submit" class="btn btn-navy" id="btnImport" disabled>
                     <i class="bi bi-upload"></i> Importer les élèves
                 </button>
 
-                <a href="{{ url_for('main.admin_dashboard') }}" class="btn btn-outline-secondary">
+                <a href="{{ url_for('main.admin_dashboard') }}"
+                   class="btn btn-outline-secondary">
                     Annuler
                 </a>
 
-                {# Message d'aide affiché tant qu'aucun fichier n'est sélectionné #}
-                {# Masqué par JavaScript dès qu'un fichier est choisi #}
                 <span id="hintFichier" class="text-muted small">
-                    <i class="bi bi-info-circle"></i> Sélectionnez d'abord un fichier CSV
+                    <i class="bi bi-info-circle"></i> Sélectionnez d'abord un fichier
                 </span>
             </div>
 
@@ -117,48 +115,34 @@ Lucas,Bernard,1B,Technique,2025-2026,</code>
 
 {% block extra_js %}
 <script>
-    // Récupération des éléments du DOM nécessaires au JavaScript
-    const dropZone  = document.getElementById('dropZone');   // Zone de dépôt
-    const input     = document.getElementById('fichier_csv'); // Input file caché
-    const nomDiv    = document.getElementById('nomFichier');  // Div affichant le nom du fichier
-    const btnImport = document.getElementById('btnImport');   // Bouton submit
-    const hint      = document.getElementById('hintFichier'); // Message d'aide
+    const dropZone  = document.getElementById('dropZone');
+    const input     = document.getElementById('fichier_csv');
+    const nomDiv    = document.getElementById('nomFichier');
+    const btnImport = document.getElementById('btnImport');
+    const hint      = document.getElementById('hintFichier');
 
-    /**
-     * afficherNom(inputEl)
-     * Appelée quand un fichier est sélectionné via le sélecteur natif.
-     * Affiche le nom du fichier, active le bouton et cache le message d'aide.
-     */
     function afficherNom(inputEl) {
         if (inputEl.files && inputEl.files[0]) {
-            // Affiche le nom du fichier sélectionné avec une icône de succès
             nomDiv.textContent = '✅ ' + inputEl.files[0].name;
             nomDiv.style.display = 'block';
-            // Active le bouton submit (était disabled par défaut)
             btnImport.disabled = false;
-            // Cache le message "Sélectionnez d'abord un fichier"
             hint.style.display = 'none';
         }
     }
 
-    // Glisser-déposer : dragover — empêche le comportement par défaut du navigateur
-    // (qui ouvrirait le fichier dans un nouvel onglet)
     dropZone.addEventListener('dragover', e => {
         e.preventDefault();
-        dropZone.classList.add('drag-over'); // Ajoute le style visuel de survol
+        dropZone.classList.add('drag-over');
     });
 
-    // Glisser-déposer : dragleave — retire le style visuel quand on quitte la zone
     dropZone.addEventListener('dragleave', () => {
         dropZone.classList.remove('drag-over');
     });
 
-    // Glisser-déposer : drop — récupère le fichier déposé et appelle afficherNom()
     dropZone.addEventListener('drop', e => {
         e.preventDefault();
         dropZone.classList.remove('drag-over');
         if (e.dataTransfer.files.length > 0) {
-            // Injecte le fichier déposé dans l'input file caché
             input.files = e.dataTransfer.files;
             afficherNom(input);
         }
